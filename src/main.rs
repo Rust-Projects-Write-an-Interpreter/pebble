@@ -8,6 +8,12 @@ use std::str::Chars;
 // `UNDEFINED TOKEN` if not.
 fn tokenize(chars: Chars) {
     chars.for_each(|c| match c {
+        ',' => println!("COMMA , null"),
+        '.' => println!("DOT . null"),
+        '-' => println!("MINUS - null"),
+        '+' => println!("PLUS + null"),
+        ';' => println!("SEMICOLON ; null"),
+        '*' => println!("STAR * null"),
         '(' => println!("LEFT_PAREN ( null"),
         ')' => println!("RIGHT_PAREN ) null"),
         '{' => println!("LEFT_BRACE {{ null"),
