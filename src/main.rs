@@ -1,26 +1,9 @@
 use std::env;
 use std::fs;
-use std::str::Chars;
 
-// Process each character in the iterator
-// `chars` and print a token in the form
-// `TYPE LEXEME null` if the token is valid or
-// `UNDEFINED TOKEN` if not.
-fn tokenize(chars: Chars) {
-    chars.for_each(|c| match c {
-        ',' => println!("COMMA , null"),
-        '.' => println!("DOT . null"),
-        '-' => println!("MINUS - null"),
-        '+' => println!("PLUS + null"),
-        ';' => println!("SEMICOLON ; null"),
-        '*' => println!("STAR * null"),
-        '(' => println!("LEFT_PAREN ( null"),
-        ')' => println!("RIGHT_PAREN ) null"),
-        '{' => println!("LEFT_BRACE {{ null"),
-        '}' => println!("RIGHT_BRACE }} null"),
-        _ => println!("UNDEFINED TOKEN"),
-    });
-}
+use crate::tokenizer::Tokenizer;
+
+mod tokenizer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -39,9 +22,16 @@ fn main() {
                 String::new()
             });
 
-            // Call the tokenizer of the whole
-            // content of the input file.
-            tokenize(file_contents.chars());
+            // Create a new tokenizer and
+            // instantiate it with the content
+            // of the input file.
+            let t = Tokenizer {
+                iter: file_contents.chars(),
+            };
+
+            // Call the tokenizer.
+            t.tokenize();
+
             println!("EOF  null");
         }
         _ => {
