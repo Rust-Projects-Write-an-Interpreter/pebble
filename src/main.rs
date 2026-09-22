@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::process;
 
 use crate::tokenizer::Tokenizer;
 
@@ -25,14 +26,19 @@ fn main() {
             // Create a new tokenizer and
             // instantiate it with the content
             // of the input file.
-            let t = Tokenizer {
+            let mut t = Tokenizer {
                 iter: file_contents.chars(),
+                errors: false,
             };
 
             // Call the tokenizer.
             t.tokenize();
 
             println!("EOF  null");
+
+            if t.errors {
+                process::exit(65);
+            }
         }
         _ => {
             eprintln!("Unknown command: {}", command);
