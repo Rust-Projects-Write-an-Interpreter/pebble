@@ -2,10 +2,23 @@ use std::str::Chars;
 
 pub struct Tokenizer<'a> {
     pub iter: Chars<'a>,
+    pub current_character: Option<char>,
     pub errors: bool,
 }
 
 impl<'a> Tokenizer<'a> {
+    // Advance the iterator and
+    // return the current character.
+    fn advance(&mut self) -> Option<char> {
+        // Advance the iterator and store
+        // the current character for future
+        // retrieval.
+        self.current_character = self.iter.next();
+
+        // Return the current character.
+        self.current_character
+    }
+
     // Process each character in the iterator
     // and print a token in the form
     // `TYPE LEXEME null` if the token is valid or

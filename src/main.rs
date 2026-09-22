@@ -28,6 +28,7 @@ fn main() {
             // of the input file.
             let mut t = Tokenizer {
                 iter: file_contents.chars(),
+                current_character: None,
                 errors: false,
             };
 
