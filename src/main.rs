@@ -27,7 +27,7 @@ fn main() {
             // instantiate it with the content
             // of the input file.
             let mut t = Tokenizer {
-                iter: file_contents.chars(),
+                iter: file_contents.chars().peekable(),
                 current_character: None,
                 errors: false,
             };

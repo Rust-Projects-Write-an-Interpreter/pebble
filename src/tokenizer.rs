@@ -1,7 +1,8 @@
+use std::iter::Peekable;
 use std::str::Chars;
 
 pub struct Tokenizer<'a> {
-    pub iter: Chars<'a>,
+    pub iter: Peekable<Chars<'a>>,
     pub current_character: Option<char>,
     pub errors: bool,
 }
@@ -74,7 +75,7 @@ mod tests {
     // character.
     fn test_advance() {
         let mut t = Tokenizer {
-            iter: "some string".chars(),
+            iter: "some string".chars().peekable(),
             current_character: None,
             errors: false,
         };
