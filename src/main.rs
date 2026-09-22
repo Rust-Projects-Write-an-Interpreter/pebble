@@ -1,5 +1,18 @@
 use std::env;
 use std::fs;
+use std::str::Chars;
+
+// Process each character in the iterator
+// `chars` and print a token in the form
+// `TYPE LEXEME null` if the token is valid or
+// `UNDEFINED TOKEN` if not.
+fn tokenize(chars: Chars) {
+    chars.for_each(|c| match c {
+        '(' => println!("LEFT_PAREN ( null"),
+        ')' => println!("RIGHT_PAREN ) null"),
+        _ => println!("UNDEFINED TOKEN"),
+    });
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,20 +26,15 @@ fn main() {
 
     match command.as_str() {
         "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
-            eprintln!("Logs from your program will appear here!");
-
             let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
                 eprintln!("Failed to read file {}", filename);
                 String::new()
             });
 
-            // Uncomment this block to pass the first stage
-            if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
-            } else {
-                println!("EOF  null"); // Placeholder, replace this line when implementing the scanner
-            }
+            // Call the tokenizer of the whole
+            // content of the input file.
+            tokenize(file_contents.chars());
+            println!("EOF  null");
         }
         _ => {
             eprintln!("Unknown command: {}", command);
