@@ -10,8 +10,8 @@ impl<'a> Tokenizer<'a> {
     // and print a token in the form
     // `TYPE LEXEME null` if the token is valid or
     // an error message if not.
-    pub fn tokenize(&mut self) {
-        self.iter.clone().for_each(|c| match c {
+    fn tokenize(&mut self, c: char) {
+        match c {
             ',' => println!("COMMA , null"),
             '.' => println!("DOT . null"),
             '-' => println!("MINUS - null"),
@@ -26,6 +26,17 @@ impl<'a> Tokenizer<'a> {
                 self.errors = true;
                 eprintln!("[line 1] Error: Unexpected character: {}", other);
             }
-        });
+        }
+    }
+}
+
+impl<'a> Iterator for Tokenizer<'a> {
+    type Item = ();
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let c = self.iter.next()?;
+
+        self.tokenize(c);
+        Some(())
     }
 }

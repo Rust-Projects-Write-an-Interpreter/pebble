@@ -31,8 +31,10 @@ fn main() {
                 errors: false,
             };
 
-            // Call the tokenizer.
-            t.tokenize();
+            // Iterate on the tokenizer.
+            for _item in &mut t {
+                continue;
+            }
 
             println!("EOF  null");
 
