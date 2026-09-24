@@ -124,6 +124,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         self.errors = true;
         Some(Err(TokenError {
             message: format!("Unexpected character: {}", current),
+            line: self.current_line,
         }))
     }
 }
@@ -387,7 +388,8 @@ mod iterator_tests {
                     literal: String::from("null")
                 }),
                 Err(TokenError {
-                    message: String::from("Unexpected character: @")
+                    message: String::from("Unexpected character: @"),
+                    line: 1,
                 }),
                 Ok(Token {
                     ttype: TokenType::Plus,

@@ -73,11 +73,12 @@ impl fmt::Display for Token {
 #[derive(Debug, PartialEq, Eq)]
 pub struct TokenError {
     pub message: String,
+    pub line: u16,
 }
 
 impl fmt::Display for TokenError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[line 1] Error: {}", self.message)
+        write!(f, "[line {}] Error: {}", self.line, self.message)
     }
 }
 
