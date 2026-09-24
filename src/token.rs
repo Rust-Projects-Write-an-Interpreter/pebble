@@ -3,6 +3,8 @@ use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
+    Bang,
+    BangEqual,
     Comma,
     Dot,
     Equal,
@@ -20,6 +22,8 @@ pub enum TokenType {
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match self {
+            Self::Bang => "BANG",
+            Self::BangEqual => "BANG_EQUAL",
             Self::Comma => "COMMA",
             Self::Dot => "DOT",
             Self::Equal => "EQUAL",
@@ -64,6 +68,7 @@ impl fmt::Display for TokenError {
 pub type TokenResult = Result<Token, TokenError>;
 
 pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
+    ("!", TokenType::Bang),
     (",", TokenType::Comma),
     (".", TokenType::Dot),
     ("=", TokenType::Equal),
@@ -77,7 +82,8 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     ("*", TokenType::Star),
 ];
 
-pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[("==", TokenType::EqualEqual)];
+pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] =
+    &[("!=", TokenType::BangEqual), ("==", TokenType::EqualEqual)];
 
 pub fn build_lexemes_map(list: &[(&str, TokenType)]) -> HashMap<String, TokenType> {
     HashMap::from_iter(list.iter().map(|n| (n.0.to_owned(), n.1.clone())))
