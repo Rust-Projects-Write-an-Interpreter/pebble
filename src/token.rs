@@ -9,8 +9,12 @@ pub enum TokenType {
     Dot,
     Equal,
     EqualEqual,
+    Greater,
+    GreaterEqual,
     LBrace,
     LParen,
+    Less,
+    LessEqual,
     Minus,
     Plus,
     RBrace,
@@ -28,8 +32,12 @@ impl fmt::Display for TokenType {
             Self::Dot => "DOT",
             Self::Equal => "EQUAL",
             Self::EqualEqual => "EQUAL_EQUAL",
+            Self::Greater => "GREATER",
+            Self::GreaterEqual => "GREATER_EQUAL",
             Self::LBrace => "LEFT_BRACE",
             Self::LParen => "LEFT_PAREN",
+            Self::Less => "LESS",
+            Self::LessEqual => "LESS_EQUAL",
             Self::Minus => "MINUS",
             Self::Plus => "PLUS",
             Self::RBrace => "RIGHT_BRACE",
@@ -72,8 +80,10 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     (",", TokenType::Comma),
     (".", TokenType::Dot),
     ("=", TokenType::Equal),
+    (">", TokenType::Greater),
     ("{", TokenType::LBrace),
     ("(", TokenType::LParen),
+    ("<", TokenType::Less),
     ("-", TokenType::Minus),
     ("+", TokenType::Plus),
     ("}", TokenType::RBrace),
@@ -82,8 +92,12 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     ("*", TokenType::Star),
 ];
 
-pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] =
-    &[("!=", TokenType::BangEqual), ("==", TokenType::EqualEqual)];
+pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
+    ("!=", TokenType::BangEqual),
+    ("==", TokenType::EqualEqual),
+    (">=", TokenType::GreaterEqual),
+    ("<=", TokenType::LessEqual),
+];
 
 pub fn build_lexemes_map(list: &[(&str, TokenType)]) -> HashMap<String, TokenType> {
     HashMap::from_iter(list.iter().map(|n| (n.0.to_owned(), n.1.clone())))
