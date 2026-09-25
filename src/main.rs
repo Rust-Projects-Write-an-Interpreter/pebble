@@ -38,6 +38,9 @@ fn main() {
                 mc_lexemes: build_lexemes_map(MULTI_CHARACTER_LEXEMES),
             };
 
+            // Initialise the iterator
+            t.advance();
+
             // Iterate on the tokenizer
             // and process each result.
             for token in &mut t {

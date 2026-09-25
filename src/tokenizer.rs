@@ -20,7 +20,7 @@ pub struct Tokenizer<'a> {
 impl<'a> Tokenizer<'a> {
     // Advance the iterator and
     // return the current character.
-    fn advance(&mut self) -> Option<char> {
+    pub fn advance(&mut self) -> Option<char> {
         // Advance the iterator and store
         // the current character for future
         // retrieval.
@@ -66,6 +66,11 @@ impl<'a> Tokenizer<'a> {
             self.advance();
         }
 
+        // We read the current character and transformed
+        // it into a token, so we need to make sure
+        // the iterator is ready to parse the next character.
+        self.advance();
+
         Some(Ok(Token {
             ttype,
             lexeme: full,
@@ -90,6 +95,11 @@ impl<'a> Tokenizer<'a> {
         if ttype == TokenType::Newline {
             self.current_line += 1;
         }
+
+        // We read the current character and transformed
+        // it into a token, so we need to make sure
+        // the iterator is ready to parse the next character.
+        self.advance();
 
         Some(Ok(Token {
             ttype,
@@ -124,7 +134,11 @@ impl<'a> Tokenizer<'a> {
 
                     if v == '"' {
                         // We just captured the last character of the
-                        // string. Return the token using the full string
+                        // string (the closing quotes) so we make sure
+                        // the iterator is ready to parse the next character.
+                        self.advance();
+
+                        // Return the token using the full string
                         // with quotes as lexemes (this is what we processed)
                         // and the string without quotes as literal value.
                         return Some(Ok(Token {
@@ -154,10 +168,8 @@ impl<'a> Iterator for Tokenizer<'a> {
     type Item = TokenResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Advance the current token and
-        // return if we reached the end
-        // of the input file.
-        let current = self.advance()?;
+        // If the current character is None return None.
+        let current = self.current_character?;
 
         // Try to match a string.
         if let Some(t) = self.string() {
@@ -178,6 +190,12 @@ impl<'a> Iterator for Tokenizer<'a> {
         // match the current character with
         // any lexeme, so this is an error.
         self.errors = true;
+
+        // We detected an error, so we advance
+        // the iterator to continue processing
+        // the input.
+        self.advance();
+
         Some(Err(TokenError {
             message: format!("Unexpected character: {}", current),
             line: self.current_line,
@@ -477,7 +495,7 @@ mod iterator_tests {
             ("+", TokenType::Plus),
         ];
 
-        let t = Tokenizer {
+        let mut t = Tokenizer {
             iter: ",(+".chars().peekable(),
             current_character: None,
             current_line: 1,
@@ -485,6 +503,9 @@ mod iterator_tests {
             sc_lexemes: build_lexemes_map(LEXEMES),
             mc_lexemes: HashMap::new(),
         };
+
+        // This advances the iterator to the initial character
+        t.advance();
 
         let result: Vec<TokenResult> = t.collect();
 
@@ -529,6 +550,9 @@ mod iterator_tests {
             mc_lexemes: HashMap::new(),
         };
 
+        // This advances the iterator to the initial character
+        t.advance();
+
         let mut result = Vec::<TokenResult>::new();
         for token in &mut t {
             result.push(token);
@@ -560,7 +584,7 @@ mod iterator_tests {
     // Test the iterator end-to-end on
     // an empty string.
     fn test_empty_input() {
-        let t = Tokenizer {
+        let mut t = Tokenizer {
             iter: "".chars().peekable(),
             current_character: None,
             current_line: 1,
@@ -568,6 +592,9 @@ mod iterator_tests {
             sc_lexemes: build_lexemes_map(&[]),
             mc_lexemes: HashMap::new(),
         };
+
+        // This advances the iterator to the initial character
+        t.advance();
 
         let result: Vec<TokenResult> = t.collect();
 
@@ -590,6 +617,9 @@ mod iterator_tests {
             sc_lexemes: build_lexemes_map(SINGLE_LEXEMES),
             mc_lexemes: build_lexemes_map(MULTI_LEXEMES),
         };
+
+        // This advances the iterator to the initial character
+        t.advance();
 
         let mut result = Vec::<TokenResult>::new();
         for token in &mut t {
@@ -622,6 +652,9 @@ mod iterator_tests {
             mc_lexemes: HashMap::new(),
         };
 
+        // This advances the iterator to the initial character
+        t.advance();
+
         let mut result = Vec::<TokenResult>::new();
         for token in &mut t {
             result.push(token);
@@ -650,6 +683,9 @@ mod iterator_tests {
             sc_lexemes: HashMap::new(),
             mc_lexemes: HashMap::new(),
         };
+
+        // This advances the iterator to the initial character
+        t.advance();
 
         let mut result = Vec::<TokenResult>::new();
         for token in &mut t {
