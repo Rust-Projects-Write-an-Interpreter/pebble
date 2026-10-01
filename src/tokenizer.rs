@@ -23,7 +23,11 @@ impl<'a> Tokenizer<'a> {
     // and print a token in the form
     // `TYPE LEXEME null` if the token is valid or
     // an error message if not.
-    fn tokenize(&mut self, c: char) {
+    fn tokenize(&mut self) -> Option<()> {
+        // Extract the current character from
+        // the Option and return if it is None.
+        let c = self.current_character?;
+
         match c {
             ',' => println!("COMMA , null"),
             '.' => println!("DOT . null"),
@@ -39,7 +43,9 @@ impl<'a> Tokenizer<'a> {
                 self.errors = true;
                 eprintln!("[line 1] Error: Unexpected character: {}", other);
             }
-        }
+        };
+
+        Some(())
     }
 }
 
@@ -47,9 +53,39 @@ impl<'a> Iterator for Tokenizer<'a> {
     type Item = ();
 
     fn next(&mut self) -> Option<Self::Item> {
-        let c = self.iter.next()?;
+        // Advance the current token and
+        // return if we reached the end
+        // of the input file.
+        self.advance()?;
 
-        self.tokenize(c);
-        Some(())
+        // Run the tokenizer on the
+        // current character.
+        self.tokenize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test that the iterator can be
+    // correctly advanced to the next
+    // character.
+    fn test_advance() {
+        let mut t = Tokenizer {
+            iter: "some string".chars(),
+            current_character: None,
+            errors: false,
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        // This advances the iterator to 'o'
+        let character = t.advance();
+
+        assert_eq!(t.current_character, Some('o'));
+        assert_eq!(character, Some('o'));
     }
 }
