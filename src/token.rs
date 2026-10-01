@@ -6,6 +6,7 @@ pub enum TokenType {
     Bang,
     BangEqual,
     Comma,
+    Comment,
     Dot,
     Equal,
     EqualEqual,
@@ -20,6 +21,7 @@ pub enum TokenType {
     RBrace,
     RParen,
     Semicolon,
+    Slash,
     Star,
 }
 
@@ -29,6 +31,7 @@ impl fmt::Display for TokenType {
             Self::Bang => "BANG",
             Self::BangEqual => "BANG_EQUAL",
             Self::Comma => "COMMA",
+            Self::Comment => "COMMENT",
             Self::Dot => "DOT",
             Self::Equal => "EQUAL",
             Self::EqualEqual => "EQUAL_EQUAL",
@@ -43,6 +46,7 @@ impl fmt::Display for TokenType {
             Self::RBrace => "RIGHT_BRACE",
             Self::RParen => "RIGHT_PAREN",
             Self::Semicolon => "SEMICOLON",
+            Self::Slash => "SLASH",
             Self::Star => "STAR",
         };
         write!(f, "{}", name)
@@ -89,11 +93,13 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     ("}", TokenType::RBrace),
     (")", TokenType::RParen),
     (";", TokenType::Semicolon),
+    ("/", TokenType::Slash),
     ("*", TokenType::Star),
 ];
 
 pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     ("!=", TokenType::BangEqual),
+    ("//", TokenType::Comment),
     ("==", TokenType::EqualEqual),
     (">=", TokenType::GreaterEqual),
     ("<=", TokenType::LessEqual),

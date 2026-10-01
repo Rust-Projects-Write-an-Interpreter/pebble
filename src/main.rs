@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::process;
 
+use crate::token::TokenType;
 use crate::token::{build_lexemes_map, MULTI_CHARACTER_LEXEMES, SINGLE_CHARACTER_LEXEMES};
 use crate::tokenizer::Tokenizer;
 
@@ -31,6 +32,7 @@ fn main() {
             let mut t = Tokenizer {
                 iter: file_contents.chars().peekable(),
                 current_character: None,
+                current_line: 1,
                 errors: false,
                 sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
                 mc_lexemes: build_lexemes_map(MULTI_CHARACTER_LEXEMES),
@@ -40,9 +42,10 @@ fn main() {
             // and process each result.
             for token in &mut t {
                 match token {
-                    Ok(token) => {
-                        println!("{}", token);
-                    }
+                    Ok(token) => match token.ttype {
+                        TokenType::Comment => continue,
+                        _ => println!("{}", token),
+                    },
                     Err(e) => {
                         eprintln!("{}", e);
                     }

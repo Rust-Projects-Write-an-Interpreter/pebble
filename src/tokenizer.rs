@@ -7,6 +7,7 @@ use crate::token::{Token, TokenError, TokenResult, TokenType};
 pub struct Tokenizer<'a> {
     pub iter: Peekable<Chars<'a>>,
     pub current_character: Option<char>,
+    pub current_line: u16,
     pub errors: bool,
 
     // A map of single-character lexemes.
@@ -45,9 +46,25 @@ impl<'a> Tokenizer<'a> {
         // tokens just return None.
         let ttype = self.mc_lexemes.get(&String::from(&full))?.clone();
 
-        // Since we found a match, we must
-        // skip the second character.
-        self.advance();
+        // If we found a comment we need to
+        // skip the whole line.
+        if ttype == TokenType::Comment {
+            // Advance the iterator until we
+            // reach the end of line
+            while let Some(v) = self.advance() {
+                if v == '\n' {
+                    break;
+                }
+            }
+
+            // We are skipping this line,
+            // increase the line number.
+            self.current_line += 1;
+        } else {
+            // Since we found a match, we must
+            // skip the second character.
+            self.advance();
+        }
 
         Some(Ok(Token {
             ttype,
@@ -118,6 +135,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: "some string".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: HashMap::new(),
             mc_lexemes: HashMap::new(),
@@ -142,6 +160,7 @@ mod tests {
         let t = Tokenizer {
             iter: "some string".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: HashMap::new(),
             mc_lexemes: HashMap::new(),
@@ -159,6 +178,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: ",".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: build_lexemes_map(&[(",", TokenType::Comma)]),
             mc_lexemes: HashMap::new(),
@@ -190,6 +210,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: "@".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: build_lexemes_map(&[(",", TokenType::Comma)]),
             mc_lexemes: HashMap::new(),
@@ -213,6 +234,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: "some string".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: HashMap::new(),
             mc_lexemes: HashMap::new(),
@@ -230,6 +252,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: "==".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: HashMap::new(),
             mc_lexemes: build_lexemes_map(&[("==", TokenType::EqualEqual)]),
@@ -261,6 +284,7 @@ mod tests {
         let mut t = Tokenizer {
             iter: "@".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: HashMap::new(),
             mc_lexemes: build_lexemes_map(&[("==", TokenType::EqualEqual)]),
@@ -294,6 +318,7 @@ mod iterator_tests {
         let t = Tokenizer {
             iter: ",(+".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: build_lexemes_map(LEXEMES),
             mc_lexemes: HashMap::new(),
@@ -336,6 +361,7 @@ mod iterator_tests {
         let mut t = Tokenizer {
             iter: ",@+".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: build_lexemes_map(LEXEMES),
             mc_lexemes: HashMap::new(),
@@ -374,6 +400,7 @@ mod iterator_tests {
         let t = Tokenizer {
             iter: "".chars().peekable(),
             current_character: None,
+            current_line: 1,
             errors: false,
             sc_lexemes: build_lexemes_map(&[]),
             mc_lexemes: HashMap::new(),
@@ -382,5 +409,38 @@ mod iterator_tests {
         let result: Vec<TokenResult> = t.collect();
 
         assert_eq!(result, []);
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a commented line.
+    fn test_comment() {
+        const SINGLE_LEXEMES: &[(&str, TokenType)] = &[("/", TokenType::Slash)];
+
+        const MULTI_LEXEMES: &[(&str, TokenType)] = &[("//", TokenType::Comment)];
+
+        let mut t = Tokenizer {
+            iter: "// Comment".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: build_lexemes_map(SINGLE_LEXEMES),
+            mc_lexemes: build_lexemes_map(MULTI_LEXEMES),
+        };
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::Comment,
+                lexeme: String::from("//"),
+                literal: String::from("null"),
+            })]
+        );
+        assert_eq!(t.current_line, 2);
     }
 }
