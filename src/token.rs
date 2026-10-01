@@ -24,6 +24,7 @@ pub enum TokenType {
     Semicolon,
     Slash,
     Star,
+    String,
     Whitespace,
 }
 
@@ -51,6 +52,7 @@ impl fmt::Display for TokenType {
             Self::Semicolon => "SEMICOLON",
             Self::Slash => "SLASH",
             Self::Star => "STAR",
+            Self::String => "STRING",
             Self::Whitespace => "WHITESPACE",
         };
         write!(f, "{}", name)

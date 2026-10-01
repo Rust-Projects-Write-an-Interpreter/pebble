@@ -97,6 +97,57 @@ impl<'a> Tokenizer<'a> {
             literal: String::from("null"),
         }))
     }
+
+    // Test the current characters and
+    // try to match the beginning of a string.
+    // Returns an error if the string is unterminated.
+    fn string(&mut self) -> Option<TokenResult> {
+        // If the current character is None return None.
+        let c = self.current_character?;
+
+        // If this is not double quotes this is not the beginning of a string.
+        if c != '"' {
+            return None;
+        }
+
+        let mut s = String::from(c);
+
+        loop {
+            // We already know the current character
+            // is part of the string, so let's start
+            // from the next one.
+            self.advance();
+
+            match self.current_character {
+                Some(v) => {
+                    s.push(v);
+
+                    if v == '"' {
+                        // We just captured the last character of the
+                        // string. Return the token using the full string
+                        // with quotes as lexemes (this is what we processed)
+                        // and the string without quotes as literal value.
+                        return Some(Ok(Token {
+                            ttype: TokenType::String,
+                            lexeme: s.clone(),
+                            literal: s.trim_matches('"').to_owned(),
+                        }));
+                    }
+                }
+                None => {
+                    // No need to advance. If we reach this point
+                    // there is nothing left to read in the file
+                    // and the string hasn't been terminated.
+                    // Goodbye.
+                    self.errors = true;
+                    return Some(Err(TokenError {
+                        message: String::from("Unterminated string."),
+                        line: self.current_line,
+                    }));
+                }
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -107,6 +158,11 @@ impl<'a> Iterator for Tokenizer<'a> {
         // return if we reached the end
         // of the input file.
         let current = self.advance()?;
+
+        // Try to match a string.
+        if let Some(t) = self.string() {
+            return Some(t);
+        }
 
         // Try to match a multi-character token.
         if let Some(t) = self.multi_character_token() {
@@ -305,6 +361,105 @@ mod tests {
 
         assert_eq!(token, None);
     }
+
+    #[test]
+    // Test that the method string
+    // behaves correctly when the tokeniser is not
+    // initialised and there is no current
+    // character.
+    fn test_string_no_current_character() {
+        let mut t = Tokenizer {
+            iter: "characters".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        assert_eq!(t.string(), None);
+    }
+
+    #[test]
+    // Test that the method string
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character, but the character is
+    // not the opening double quotes.
+    fn test_string_no_double_quotes() {
+        let mut t = Tokenizer {
+            iter: "characters".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(t.string(), None);
+    }
+
+    #[test]
+    // Test that the method string
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // a string with both opening and
+    // closing double quotes.
+    fn test_string_valid_string() {
+        let mut t = Tokenizer {
+            iter: "\"some string\"".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.string(),
+            Some(Ok(Token {
+                ttype: TokenType::String,
+                lexeme: String::from("\"some string\""),
+                literal: String::from("some string"),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method string
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // a string with only the
+    // opening double quotes.
+    fn test_string_unterminated() {
+        let mut t = Tokenizer {
+            iter: "\"some string".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.string(),
+            Some(Err(TokenError {
+                message: String::from("Unterminated string."),
+                line: 1
+            }))
+        );
+    }
 }
 
 #[cfg(test)]
@@ -481,5 +636,33 @@ mod iterator_tests {
             })]
         );
         assert_eq!(t.current_line, 2);
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a well-defined string.
+    fn test_string() {
+        let mut t = Tokenizer {
+            iter: "\"a string\"".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::String,
+                lexeme: String::from("\"a string\""),
+                literal: String::from("a string"),
+            })]
+        );
     }
 }
