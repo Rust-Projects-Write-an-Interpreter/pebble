@@ -5,6 +5,8 @@ use std::fmt;
 pub enum TokenType {
     Comma,
     Dot,
+    Equal,
+    EqualEqual,
     LBrace,
     LParen,
     Minus,
@@ -20,6 +22,8 @@ impl fmt::Display for TokenType {
         let name = match self {
             Self::Comma => "COMMA",
             Self::Dot => "DOT",
+            Self::Equal => "EQUAL",
+            Self::EqualEqual => "EQUAL_EQUAL",
             Self::LBrace => "LEFT_BRACE",
             Self::LParen => "LEFT_PAREN",
             Self::Minus => "MINUS",
@@ -62,6 +66,7 @@ pub type TokenResult = Result<Token, TokenError>;
 pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     (",", TokenType::Comma),
     (".", TokenType::Dot),
+    ("=", TokenType::Equal),
     ("{", TokenType::LBrace),
     ("(", TokenType::LParen),
     ("-", TokenType::Minus),
@@ -71,6 +76,8 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     (";", TokenType::Semicolon),
     ("*", TokenType::Star),
 ];
+
+pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[("==", TokenType::EqualEqual)];
 
 pub fn build_lexemes_map(list: &[(&str, TokenType)]) -> HashMap<String, TokenType> {
     HashMap::from_iter(list.iter().map(|n| (n.0.to_owned(), n.1.clone())))

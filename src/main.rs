@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::process;
 
-use crate::token::{build_lexemes_map, SINGLE_CHARACTER_LEXEMES};
+use crate::token::{build_lexemes_map, MULTI_CHARACTER_LEXEMES, SINGLE_CHARACTER_LEXEMES};
 use crate::tokenizer::Tokenizer;
 
 mod token;
@@ -33,6 +33,7 @@ fn main() {
                 current_character: None,
                 errors: false,
                 sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
+                mc_lexemes: build_lexemes_map(MULTI_CHARACTER_LEXEMES),
             };
 
             // Iterate on the tokenizer

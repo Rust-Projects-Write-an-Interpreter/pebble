@@ -11,6 +11,9 @@ pub struct Tokenizer<'a> {
 
     // A map of single-character lexemes.
     pub sc_lexemes: HashMap<String, TokenType>,
+
+    // A map of multi-character lexemes.
+    pub mc_lexemes: HashMap<String, TokenType>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -26,9 +29,36 @@ impl<'a> Tokenizer<'a> {
         self.current_character
     }
 
-    // Process each character in the iterator
-    // and return a token result.
-    fn tokenize(&self) -> Option<TokenResult> {
+    // Test the current and next characters and
+    // try to match one of the multi-character lexemes
+    fn multi_character_token(&mut self) -> Option<TokenResult> {
+        // If the current character is None return None.
+        let c = self.current_character?;
+
+        // If there is nothing after this character just return None.
+        let &n = self.iter.peek()?;
+
+        // Build the full token.
+        let full = [c, n].iter().collect::<String>();
+
+        // If the full token is not in the multi-character
+        // tokens just return None.
+        let ttype = self.mc_lexemes.get(&String::from(&full))?.clone();
+
+        // Since we found a match, we must
+        // skip the second character.
+        self.advance();
+
+        Some(Ok(Token {
+            ttype,
+            lexeme: full,
+            literal: String::from("null"),
+        }))
+    }
+
+    // Test the current character and
+    // try to match one of the single-character lexemes
+    fn single_character_token(&self) -> Option<TokenResult> {
         // Extract the current character from
         // the Option and return if it is None.
         let c = self.current_character?;
@@ -55,9 +85,13 @@ impl<'a> Iterator for Tokenizer<'a> {
         // of the input file.
         let current = self.advance()?;
 
-        // Run the tokenizer on the current character
-        // and return the result if not None.
-        if let Some(t) = self.tokenize() {
+        // Try to match a multi-character token.
+        if let Some(t) = self.multi_character_token() {
+            return Some(t);
+        }
+
+        // Try to match a single-character token.
+        if let Some(t) = self.single_character_token() {
             return Some(t);
         }
 
@@ -86,6 +120,7 @@ mod tests {
             current_character: None,
             errors: false,
             sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
         };
 
         // This advances the iterator to the initial character
@@ -99,8 +134,8 @@ mod tests {
     }
 
     #[test]
-    // Test that the method tokenize behaves
-    // correctly when the tokeniser is not
+    // Test that the method single_character_token
+    // behaves correctly when the tokeniser is not
     // initialised and there is no current
     // character.
     fn test_tokenize_no_current_character() {
@@ -109,14 +144,15 @@ mod tests {
             current_character: None,
             errors: false,
             sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
         };
 
-        assert_eq!(t.tokenize(), None);
+        assert_eq!(t.single_character_token(), None);
     }
 
     #[test]
-    // Test that the method tokenize behaves
-    // correctly when the tokeniser is
+    // Test that the method single_character_token
+    // behaves correctly when the tokeniser is
     // initialised and there is a current
     // character.
     fn test_tokenize_valid_character() {
@@ -125,13 +161,14 @@ mod tests {
             current_character: None,
             errors: false,
             sc_lexemes: build_lexemes_map(&[(",", TokenType::Comma)]),
+            mc_lexemes: HashMap::new(),
         };
 
         // This advances the iterator to the initial character
         t.advance();
 
         // Run the tokenizer on the initial character
-        let token = t.tokenize();
+        let token = t.single_character_token();
 
         assert_eq!(
             token,
@@ -144,8 +181,8 @@ mod tests {
     }
 
     #[test]
-    // Test that the method tokenize behaves
-    // correctly when the tokeniser is
+    // Test that the method single_character_token
+    // behaves correctly when the tokeniser is
     // initialised and there is a current
     // character, but the character is
     // not a valid lexeme.
@@ -155,13 +192,85 @@ mod tests {
             current_character: None,
             errors: false,
             sc_lexemes: build_lexemes_map(&[(",", TokenType::Comma)]),
+            mc_lexemes: HashMap::new(),
         };
 
         // This advances the iterator to the initial character
         t.advance();
 
         // Run the tokenizer on the initial character
-        let token = t.tokenize();
+        let token = t.single_character_token();
+
+        assert_eq!(token, None);
+    }
+
+    #[test]
+    // Test that the method multi_character_token
+    // behaves correctly when the tokeniser is not
+    // initialised and there is no current
+    // character.
+    fn test_multi_character_no_current_character() {
+        let mut t = Tokenizer {
+            iter: "some string".chars().peekable(),
+            current_character: None,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        assert_eq!(t.multi_character_token(), None);
+    }
+
+    #[test]
+    // Test that the method multi_character_token
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character.
+    fn test_multi_character_valid_character() {
+        let mut t = Tokenizer {
+            iter: "==".chars().peekable(),
+            current_character: None,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: build_lexemes_map(&[("==", TokenType::EqualEqual)]),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        // Run the tokenizer on the initial character
+        let token = t.multi_character_token();
+
+        assert_eq!(
+            token,
+            Some(Ok(Token {
+                ttype: TokenType::EqualEqual,
+                lexeme: String::from("=="),
+                literal: String::from("null"),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method multi_character_token
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character, but the character is
+    // not a valid lexeme.
+    fn test_multi_character_invalid_character() {
+        let mut t = Tokenizer {
+            iter: "@".chars().peekable(),
+            current_character: None,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: build_lexemes_map(&[("==", TokenType::EqualEqual)]),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        // Run the tokenizer on the initial character
+        let token = t.multi_character_token();
 
         assert_eq!(token, None);
     }
@@ -187,6 +296,7 @@ mod iterator_tests {
             current_character: None,
             errors: false,
             sc_lexemes: build_lexemes_map(LEXEMES),
+            mc_lexemes: HashMap::new(),
         };
 
         let result: Vec<TokenResult> = t.collect();
@@ -228,6 +338,7 @@ mod iterator_tests {
             current_character: None,
             errors: false,
             sc_lexemes: build_lexemes_map(LEXEMES),
+            mc_lexemes: HashMap::new(),
         };
 
         let mut result = Vec::<TokenResult>::new();
@@ -265,6 +376,7 @@ mod iterator_tests {
             current_character: None,
             errors: false,
             sc_lexemes: build_lexemes_map(&[]),
+            mc_lexemes: HashMap::new(),
         };
 
         let result: Vec<TokenResult> = t.collect();
