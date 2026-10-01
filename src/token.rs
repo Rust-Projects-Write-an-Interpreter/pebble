@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
     Comma,
     Dot,
@@ -33,6 +33,7 @@ impl fmt::Display for TokenType {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
@@ -45,6 +46,7 @@ impl fmt::Display for Token {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct TokenError {
     pub message: String,
 }
@@ -54,6 +56,8 @@ impl fmt::Display for TokenError {
         write!(f, "[line 1] Error: {}", self.message)
     }
 }
+
+pub type TokenResult = Result<Token, TokenError>;
 
 pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     (",", TokenType::Comma),

@@ -35,9 +35,17 @@ fn main() {
                 sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
             };
 
-            // Iterate on the tokenizer.
-            for _item in &mut t {
-                continue;
+            // Iterate on the tokenizer
+            // and process each result.
+            for token in &mut t {
+                match token {
+                    Ok(token) => {
+                        println!("{}", token);
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e);
+                    }
+                }
             }
 
             println!("EOF  null");
