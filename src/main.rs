@@ -44,6 +44,8 @@ fn main() {
                 match token {
                     Ok(token) => match token.ttype {
                         TokenType::Comment => continue,
+                        TokenType::Whitespace => continue,
+                        TokenType::Newline => continue,
                         _ => println!("{}", token),
                     },
                     Err(e) => {

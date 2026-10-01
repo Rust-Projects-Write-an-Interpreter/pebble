@@ -75,7 +75,7 @@ impl<'a> Tokenizer<'a> {
 
     // Test the current character and
     // try to match one of the single-character lexemes
-    fn single_character_token(&self) -> Option<TokenResult> {
+    fn single_character_token(&mut self) -> Option<TokenResult> {
         // Extract the current character from
         // the Option and return if it is None.
         let c = self.current_character?;
@@ -84,6 +84,12 @@ impl<'a> Tokenizer<'a> {
         // the map of single-character lexemes.
         // Return None if no character can be found.
         let ttype = self.sc_lexemes.get(&String::from(c))?.clone();
+
+        // If the token we read is a newline we need to
+        // update the current line.
+        if ttype == TokenType::Newline {
+            self.current_line += 1;
+        }
 
         Some(Ok(Token {
             ttype,
@@ -157,7 +163,7 @@ mod tests {
     // initialised and there is no current
     // character.
     fn test_tokenize_no_current_character() {
-        let t = Tokenizer {
+        let mut t = Tokenizer {
             iter: "some string".chars().peekable(),
             current_character: None,
             current_line: 1,
@@ -438,6 +444,37 @@ mod iterator_tests {
             [Ok(Token {
                 ttype: TokenType::Comment,
                 lexeme: String::from("//"),
+                literal: String::from("null"),
+            })]
+        );
+        assert_eq!(t.current_line, 2);
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a single new line character.
+    fn test_newline() {
+        const SINGLE_LEXEMES: &[(&str, TokenType)] = &[("\n", TokenType::Newline)];
+
+        let mut t = Tokenizer {
+            iter: "\n".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: build_lexemes_map(SINGLE_LEXEMES),
+            mc_lexemes: HashMap::new(),
+        };
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::Newline,
+                lexeme: String::from("\n"),
                 literal: String::from("null"),
             })]
         );

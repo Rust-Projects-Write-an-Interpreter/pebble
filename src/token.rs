@@ -17,12 +17,14 @@ pub enum TokenType {
     Less,
     LessEqual,
     Minus,
+    Newline,
     Plus,
     RBrace,
     RParen,
     Semicolon,
     Slash,
     Star,
+    Whitespace,
 }
 
 impl fmt::Display for TokenType {
@@ -42,12 +44,14 @@ impl fmt::Display for TokenType {
             Self::Less => "LESS",
             Self::LessEqual => "LESS_EQUAL",
             Self::Minus => "MINUS",
+            Self::Newline => "NEWLINE",
             Self::Plus => "PLUS",
             Self::RBrace => "RIGHT_BRACE",
             Self::RParen => "RIGHT_PAREN",
             Self::Semicolon => "SEMICOLON",
             Self::Slash => "SLASH",
             Self::Star => "STAR",
+            Self::Whitespace => "WHITESPACE",
         };
         write!(f, "{}", name)
     }
@@ -89,12 +93,15 @@ pub const SINGLE_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
     ("(", TokenType::LParen),
     ("<", TokenType::Less),
     ("-", TokenType::Minus),
+    ("\n", TokenType::Newline),
     ("+", TokenType::Plus),
     ("}", TokenType::RBrace),
     (")", TokenType::RParen),
     (";", TokenType::Semicolon),
     ("/", TokenType::Slash),
     ("*", TokenType::Star),
+    (" ", TokenType::Whitespace),
+    ("\t", TokenType::Whitespace),
 ];
 
 pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
