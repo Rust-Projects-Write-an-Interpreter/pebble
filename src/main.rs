@@ -92,7 +92,10 @@ fn main() {
 
             match p.expression() {
                 Ok(v) => println!("{}", v),
-                _ => panic!(),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    process::exit(65);
+                }
             }
         }
         _ => {
