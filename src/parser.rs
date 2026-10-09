@@ -24,14 +24,27 @@ impl fmt::Display for Literal {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    Binary {
+        left: Box<Self>,
+        operator: Token,
+        right: Box<Self>,
+    },
     Group(Box<Self>),
     Literal(Literal),
-    Unary { operator: Token, right: Box<Self> },
+    Unary {
+        operator: Token,
+        right: Box<Self>,
+    },
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name: String = match self {
+            Self::Binary {
+                left,
+                operator,
+                right,
+            } => format!("({} {} {})", operator.lexeme, left, right),
             Self::Group(p) => format!("(group {})", p),
             Self::Literal(s) => s.to_string(),
             Self::Unary { operator, right } => format!("({} {})", operator.lexeme, right),
@@ -100,7 +113,28 @@ impl Parser {
 
     // The main entry point of the parser.
     pub fn expression(&mut self) -> Option<Expression> {
-        self.unary()
+        self.factor()
+    }
+
+    // Parse the next three tokens and try to
+    // identify a multiplication or a division.
+    //
+    // factor -> unary ( ( "/" | "*" ) unary )*
+    fn factor(&mut self) -> Option<Expression> {
+        let mut expression = self.unary()?;
+
+        while let Some(t) = self.match_current(&[TokenType::Slash, TokenType::Star]) {
+            let operator = t.clone();
+            let right = self.unary()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Some(expression)
     }
 
     // Parse the next two tokens and try to
@@ -585,5 +619,115 @@ mod tests {
             })))
         );
         assert_eq!(parser.index, 4);
+    }
+
+    #[test]
+    // Test that the method `factor` works
+    // correctly with two primaries and
+    // a token `Slash`.
+    fn test_factor_slash() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Slash),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.factor();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Slash),
+                right: Box::new(Expression::Literal(Literal::Number(456.0)))
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `factor` works
+    // correctly with two primaries and
+    // a token `Star`.
+    fn test_factor_star() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Star),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.factor();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Star),
+                right: Box::new(Expression::Literal(Literal::Number(456.0)))
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `factor` works
+    // correctly with multiple primaries
+    // chained by either Slash or Star
+    // tokens.
+    fn test_factor_chain() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Star),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Slash),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(789.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.factor();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                    operator: dummy_token(TokenType::Star),
+                    right: Box::new(Expression::Literal(Literal::Number(456.0)))
+                }),
+                operator: dummy_token(TokenType::Slash),
+                right: Box::new(Expression::Literal(Literal::Number(789.0)))
+            })
+        );
+        assert_eq!(parser.index, 5);
     }
 }
