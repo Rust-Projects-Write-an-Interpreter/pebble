@@ -281,6 +281,7 @@ mod tests {
             ttype,
             lexeme: String::new(),
             literal: TokenLiteral::Null,
+            line: 1,
         }
     }
 
@@ -494,6 +495,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -514,6 +516,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -534,6 +537,7 @@ mod tests {
                 ttype: TokenType::String,
                 lexeme: String::new(),
                 literal: TokenLiteral::String(String::from("Some string")),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -557,6 +561,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::RParen),
             dummy_token(TokenType::Eof),
@@ -584,6 +589,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -611,6 +617,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -639,6 +646,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -670,6 +678,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.4),
+                line: 1,
             },
             dummy_token(TokenType::RParen),
             dummy_token(TokenType::Eof),
@@ -697,12 +706,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Slash),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -730,12 +741,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Star),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -764,18 +777,21 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Star),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Slash),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(789.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -807,12 +823,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Plus),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -840,12 +858,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Minus),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -874,18 +894,21 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Minus),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Plus),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(789.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -917,12 +940,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Less),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -950,12 +975,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::LessEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -983,12 +1010,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Greater),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -1016,12 +1045,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::GreaterEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -1050,18 +1081,21 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::Less),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::GreaterEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(789.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -1093,12 +1127,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::BangEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -1126,12 +1162,14 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::EqualEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];
@@ -1159,18 +1197,21 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(123.0),
+                line: 1,
             },
             dummy_token(TokenType::BangEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(456.0),
+                line: 1,
             },
             dummy_token(TokenType::EqualEqual),
             Token {
                 ttype: TokenType::Number,
                 lexeme: String::new(),
                 literal: TokenLiteral::Number(789.0),
+                line: 1,
             },
             dummy_token(TokenType::Eof),
         ];

@@ -49,6 +49,11 @@ impl<'a> Tokenizer<'a> {
         // tokens just return None.
         let ttype = self.mc_lexemes.get(&String::from(&full))?.clone();
 
+        // If we found a proper token we must
+        // take note of the line number as
+        // later we might move to the next line.
+        let token_line = self.current_line;
+
         // If we found a comment we need to
         // skip the whole line.
         if ttype == TokenType::Comment {
@@ -78,6 +83,7 @@ impl<'a> Tokenizer<'a> {
             ttype,
             lexeme: full,
             literal: TokenLiteral::Null,
+            line: token_line,
         }))
     }
 
@@ -92,6 +98,11 @@ impl<'a> Tokenizer<'a> {
         // the map of single-character lexemes.
         // Return None if no character can be found.
         let ttype = self.sc_lexemes.get(&String::from(c))?.clone();
+
+        // If we found a proper token we must
+        // take note of the line number as
+        // later we might move to the next line.
+        let token_line = self.current_line;
 
         // If the token we read is a newline we need to
         // update the current line.
@@ -108,6 +119,7 @@ impl<'a> Tokenizer<'a> {
             ttype,
             lexeme: String::from(c),
             literal: TokenLiteral::Null,
+            line: token_line,
         }))
     }
 
@@ -148,6 +160,7 @@ impl<'a> Tokenizer<'a> {
                             ttype: TokenType::String,
                             lexeme: s.clone(),
                             literal: TokenLiteral::String(s.trim_matches('"').to_owned()),
+                            line: self.current_line,
                         }));
                     }
                 }
@@ -245,6 +258,7 @@ impl<'a> Tokenizer<'a> {
             ttype: TokenType::Number,
             lexeme: s.clone(),
             literal,
+            line: self.current_line,
         }))
     }
 
@@ -299,6 +313,7 @@ impl<'a> Tokenizer<'a> {
                 ttype: TokenType::Reserved(k),
                 lexeme: s.clone(),
                 literal: TokenLiteral::Null,
+                line: self.current_line,
             }));
         }
 
@@ -309,6 +324,7 @@ impl<'a> Tokenizer<'a> {
             ttype: TokenType::Identifier,
             lexeme: s.clone(),
             literal: TokenLiteral::Null,
+            line: self.current_line,
         }))
     }
 }
@@ -396,6 +412,7 @@ pub fn tokenize(chars: Peekable<Chars>) -> Vec<TokenResult> {
         ttype: TokenType::Eof,
         lexeme: String::from(""),
         literal: TokenLiteral::Null,
+        line: 1,
     }));
 
     results
@@ -475,6 +492,7 @@ mod tests {
                 ttype: TokenType::Comma,
                 lexeme: String::from(","),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -549,6 +567,7 @@ mod tests {
                 ttype: TokenType::EqualEqual,
                 lexeme: String::from("=="),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -644,6 +663,7 @@ mod tests {
                 ttype: TokenType::String,
                 lexeme: String::from("\"some string\""),
                 literal: TokenLiteral::String(String::from("some string")),
+                line: 1
             }))
         );
     }
@@ -742,6 +762,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("4"),
                 literal: TokenLiteral::Number(4.0),
+                line: 1
             }))
         );
     }
@@ -771,6 +792,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("4242"),
                 literal: TokenLiteral::Number(4242.0),
+                line: 1
             }))
         );
     }
@@ -801,6 +823,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("4242"),
                 literal: TokenLiteral::Number(4242.0),
+                line: 1
             }))
         );
     }
@@ -831,6 +854,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("4242.42"),
                 literal: TokenLiteral::Number(4242.42),
+                line: 1
             }))
         );
     }
@@ -860,6 +884,7 @@ mod tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("1.2"),
                 literal: TokenLiteral::Number(1.2),
+                line: 1
             }))
         );
     }
@@ -953,6 +978,7 @@ mod tests {
                 ttype: TokenType::Identifier,
                 lexeme: String::from("foo"),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -983,6 +1009,7 @@ mod tests {
                 ttype: TokenType::Identifier,
                 lexeme: String::from("_foo"),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -1013,6 +1040,7 @@ mod tests {
                 ttype: TokenType::Identifier,
                 lexeme: String::from("foo8"),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -1043,6 +1071,7 @@ mod tests {
                 ttype: TokenType::Reserved(Keyword::While),
                 lexeme: Keyword::While.lexeme(),
                 literal: TokenLiteral::Null,
+                line: 1
             }))
         );
     }
@@ -1083,17 +1112,20 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Comma,
                     lexeme: String::from(","),
-                    literal: TokenLiteral::Null
+                    literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::LParen,
                     lexeme: String::from("("),
-                    literal: TokenLiteral::Null
+                    literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::Plus,
                     lexeme: String::from("+"),
-                    literal: TokenLiteral::Null
+                    literal: TokenLiteral::Null,
+                    line: 1
                 }),
             ]
         );
@@ -1132,7 +1164,8 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Comma,
                     lexeme: String::from(","),
-                    literal: TokenLiteral::Null
+                    literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Err(TokenError {
                     message: String::from("Unexpected character: @"),
@@ -1141,7 +1174,8 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Plus,
                     lexeme: String::from("+"),
-                    literal: TokenLiteral::Null
+                    literal: TokenLiteral::Null,
+                    line: 1
                 }),
             ]
         );
@@ -1200,6 +1234,7 @@ mod iterator_tests {
                 ttype: TokenType::Comment,
                 lexeme: String::from("//"),
                 literal: TokenLiteral::Null,
+                line: 1
             })]
         );
         assert_eq!(t.current_line, 2);
@@ -1234,6 +1269,7 @@ mod iterator_tests {
                 ttype: TokenType::Newline,
                 lexeme: String::from("\n"),
                 literal: TokenLiteral::Null,
+                line: 1
             })]
         );
         assert_eq!(t.current_line, 2);
@@ -1266,6 +1302,7 @@ mod iterator_tests {
                 ttype: TokenType::String,
                 lexeme: String::from("\"a string\""),
                 literal: TokenLiteral::String(String::from("a string")),
+                line: 1
             })]
         );
     }
@@ -1297,6 +1334,7 @@ mod iterator_tests {
                 ttype: TokenType::Number,
                 lexeme: String::from("4242.42"),
                 literal: TokenLiteral::Number(4242.42),
+                line: 1
             })]
         );
     }
@@ -1329,6 +1367,7 @@ mod iterator_tests {
                     ttype: TokenType::Number,
                     lexeme: String::from("1.2"),
                     literal: TokenLiteral::Number(1.2),
+                    line: 1
                 }),
                 Err(TokenError {
                     message: "Unexpected character: .".to_string(),
@@ -1338,6 +1377,7 @@ mod iterator_tests {
                     ttype: TokenType::Number,
                     lexeme: String::from("3"),
                     literal: TokenLiteral::Number(3.0),
+                    line: 1
                 }),
             ]
         );
@@ -1370,6 +1410,7 @@ mod iterator_tests {
                 ttype: TokenType::Identifier,
                 lexeme: String::from("foo"),
                 literal: TokenLiteral::Null,
+                line: 1
             })]
         );
     }
@@ -1401,6 +1442,7 @@ mod iterator_tests {
                 ttype: TokenType::Reserved(Keyword::While),
                 lexeme: Keyword::While.lexeme(),
                 literal: TokenLiteral::Null,
+                line: 1
             })]
         );
     }
@@ -1422,26 +1464,31 @@ mod tokenize_tests {
                     ttype: TokenType::Reserved(Keyword::For),
                     lexeme: String::from("for"),
                     literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::LParen,
                     lexeme: String::from("("),
                     literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::EqualEqual,
                     lexeme: String::from("=="),
                     literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::RParen,
                     lexeme: String::from(")"),
                     literal: TokenLiteral::Null,
+                    line: 1
                 }),
                 Ok(Token {
                     ttype: TokenType::Eof,
                     lexeme: String::from(""),
                     literal: TokenLiteral::Null,
+                    line: 1
                 }),
             ]
         );

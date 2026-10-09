@@ -180,6 +180,7 @@ pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
     pub literal: TokenLiteral,
+    pub line: u16,
 }
 
 impl fmt::Display for Token {
