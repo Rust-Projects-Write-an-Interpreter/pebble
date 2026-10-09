@@ -157,7 +157,23 @@ impl Parser {
 
     // The main entry point of the parser.
     pub fn expression(&mut self) -> Option<Expression> {
-        self.term()
+        self.comparison()
+    }
+
+    // Parse the next three tokens and try to
+    // identify a comparison.
+    //
+    // comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
+    fn comparison(&mut self) -> Option<Expression> {
+        self.binary(
+            &[
+                TokenType::Less,
+                TokenType::LessEqual,
+                TokenType::Greater,
+                TokenType::GreaterEqual,
+            ],
+            Self::term,
+        )
     }
 
     // Parse the next three tokens and try to
@@ -874,6 +890,182 @@ mod tests {
                     right: Box::new(Expression::Literal(Literal::Number(456.0))),
                 }),
                 operator: dummy_token(TokenType::Plus),
+                right: Box::new(Expression::Literal(Literal::Number(789.0))),
+            })
+        );
+        assert_eq!(parser.index, 5);
+    }
+
+    #[test]
+    // Test that the method `comparison` works
+    // correctly with two primaries and
+    // a token `Less`.
+    fn test_comparison_less() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Less),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.comparison();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Less),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `comparison` works
+    // correctly with two primaries and
+    // a token `LessEqual`.
+    fn test_comparison_less_equal() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::LessEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.comparison();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::LessEqual),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `comparison` works
+    // correctly with two primaries and
+    // a token `Greater`.
+    fn test_comparison_greater() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Greater),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.comparison();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Greater),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `comparison` works
+    // correctly with two primaries and
+    // a token `GreaterEqual`.
+    fn test_comparison_greater_equal() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::GreaterEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.comparison();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::GreaterEqual),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `comparison` works
+    // correctly with multiple primaries
+    // chained by comparison
+    // tokens.
+    fn test_comparison_chain() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Less),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::GreaterEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(789.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.comparison();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                    operator: dummy_token(TokenType::Less),
+                    right: Box::new(Expression::Literal(Literal::Number(456.0))),
+                }),
+                operator: dummy_token(TokenType::GreaterEqual),
                 right: Box::new(Expression::Literal(Literal::Number(789.0))),
             })
         );
