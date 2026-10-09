@@ -157,7 +157,18 @@ impl Parser {
 
     // The main entry point of the parser.
     pub fn expression(&mut self) -> Option<Expression> {
-        self.comparison()
+        self.equality()
+    }
+
+    // Parse the next three tokens and try to
+    // identify an equality.
+    //
+    // equality -> comparison ( ( "!=" | "==" ) comparison )*
+    fn equality(&mut self) -> Option<Expression> {
+        self.binary(
+            &[TokenType::BangEqual, TokenType::EqualEqual],
+            Self::comparison,
+        )
     }
 
     // Parse the next three tokens and try to
@@ -1066,6 +1077,115 @@ mod tests {
                     right: Box::new(Expression::Literal(Literal::Number(456.0))),
                 }),
                 operator: dummy_token(TokenType::GreaterEqual),
+                right: Box::new(Expression::Literal(Literal::Number(789.0))),
+            })
+        );
+        assert_eq!(parser.index, 5);
+    }
+
+    #[test]
+    // Test that the method `equality` works
+    // correctly with two primaries and
+    // a token `BangEqual`.
+    fn test_equality_bang_equal() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::BangEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.equality();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::BangEqual),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `equality` works
+    // correctly with two primaries and
+    // a token `EqualEqual`.
+    fn test_equality_equal_equal() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::EqualEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.equality();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::EqualEqual),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `equality` works
+    // correctly with multiple primaries
+    // chained by equality tokens.
+    fn test_equality_chain() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::BangEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::EqualEqual),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(789.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.equality();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                    operator: dummy_token(TokenType::BangEqual),
+                    right: Box::new(Expression::Literal(Literal::Number(456.0))),
+                }),
+                operator: dummy_token(TokenType::EqualEqual),
                 right: Box::new(Expression::Literal(Literal::Number(789.0))),
             })
         );
