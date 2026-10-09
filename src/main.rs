@@ -2,8 +2,10 @@ use std::env;
 use std::fs;
 use std::process;
 
+use crate::token::{build_lexemes_map, SINGLE_CHARACTER_LEXEMES};
 use crate::tokenizer::Tokenizer;
 
+mod token;
 mod tokenizer;
 
 fn main() {
@@ -30,6 +32,7 @@ fn main() {
                 iter: file_contents.chars().peekable(),
                 current_character: None,
                 errors: false,
+                sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
             };
 
             // Iterate on the tokenizer.

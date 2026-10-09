@@ -1,10 +1,16 @@
+use std::collections::HashMap;
 use std::iter::Peekable;
 use std::str::Chars;
+
+use crate::token::TokenType;
 
 pub struct Tokenizer<'a> {
     pub iter: Peekable<Chars<'a>>,
     pub current_character: Option<char>,
     pub errors: bool,
+
+    // A map of single-character lexemes.
+    pub sc_lexemes: HashMap<String, TokenType>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -29,20 +35,13 @@ impl<'a> Tokenizer<'a> {
         // the Option and return if it is None.
         let c = self.current_character?;
 
-        match c {
-            ',' => println!("COMMA , null"),
-            '.' => println!("DOT . null"),
-            '-' => println!("MINUS - null"),
-            '+' => println!("PLUS + null"),
-            ';' => println!("SEMICOLON ; null"),
-            '*' => println!("STAR * null"),
-            '(' => println!("LEFT_PAREN ( null"),
-            ')' => println!("RIGHT_PAREN ) null"),
-            '{' => println!("LEFT_BRACE {{ null"),
-            '}' => println!("RIGHT_BRACE }} null"),
-            other => {
+        // Look for the current character in
+        // the map of single-character lexemes.
+        match self.sc_lexemes.get(&String::from(c)) {
+            Some(ttype) => println!("{} {} null", ttype, c),
+            None => {
                 self.errors = true;
-                eprintln!("[line 1] Error: Unexpected character: {}", other);
+                eprintln!("[line 1] Error: Unexpected character: {}", c);
             }
         };
 
@@ -78,6 +77,7 @@ mod tests {
             iter: "some string".chars().peekable(),
             current_character: None,
             errors: false,
+            sc_lexemes: HashMap::new(),
         };
 
         // This advances the iterator to the initial character
@@ -88,5 +88,21 @@ mod tests {
 
         assert_eq!(t.current_character, Some('o'));
         assert_eq!(character, Some('o'));
+    }
+
+    #[test]
+    // Test that the method tokenize behaves
+    // correctly when the tokeniser is not
+    // initialised and there is no current
+    // character.
+    fn test_tokenize_no_current_character() {
+        let mut t = Tokenizer {
+            iter: "some string".chars().peekable(),
+            current_character: None,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+        };
+
+        assert_eq!(t.tokenize(), None);
     }
 }
