@@ -60,10 +60,25 @@ impl fmt::Display for TokenType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum TokenLiteral {
+    Null,
+    String(String),
+}
+
+impl fmt::Display for TokenLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Null => write!(f, "null"),
+            Self::String(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
-    pub literal: String,
+    pub literal: TokenLiteral,
 }
 
 impl fmt::Display for Token {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::token::{Token, TokenError, TokenResult, TokenType};
+use crate::token::{Token, TokenError, TokenLiteral, TokenResult, TokenType};
 
 pub struct Tokenizer<'a> {
     pub iter: Peekable<Chars<'a>>,
@@ -74,7 +74,7 @@ impl<'a> Tokenizer<'a> {
         Some(Ok(Token {
             ttype,
             lexeme: full,
-            literal: String::from("null"),
+            literal: TokenLiteral::Null,
         }))
     }
 
@@ -104,7 +104,7 @@ impl<'a> Tokenizer<'a> {
         Some(Ok(Token {
             ttype,
             lexeme: String::from(c),
-            literal: String::from("null"),
+            literal: TokenLiteral::Null,
         }))
     }
 
@@ -144,7 +144,7 @@ impl<'a> Tokenizer<'a> {
                         return Some(Ok(Token {
                             ttype: TokenType::String,
                             lexeme: s.clone(),
-                            literal: s.trim_matches('"').to_owned(),
+                            literal: TokenLiteral::String(s.trim_matches('"').to_owned()),
                         }));
                     }
                 }
@@ -276,7 +276,7 @@ mod tests {
             Some(Ok(Token {
                 ttype: TokenType::Comma,
                 lexeme: String::from(","),
-                literal: String::from("null"),
+                literal: TokenLiteral::Null,
             }))
         );
     }
@@ -350,7 +350,7 @@ mod tests {
             Some(Ok(Token {
                 ttype: TokenType::EqualEqual,
                 lexeme: String::from("=="),
-                literal: String::from("null"),
+                literal: TokenLiteral::Null,
             }))
         );
     }
@@ -445,7 +445,7 @@ mod tests {
             Some(Ok(Token {
                 ttype: TokenType::String,
                 lexeme: String::from("\"some string\""),
-                literal: String::from("some string"),
+                literal: TokenLiteral::String(String::from("some string")),
             }))
         );
     }
@@ -515,17 +515,17 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Comma,
                     lexeme: String::from(","),
-                    literal: String::from("null")
+                    literal: TokenLiteral::Null
                 }),
                 Ok(Token {
                     ttype: TokenType::LParen,
                     lexeme: String::from("("),
-                    literal: String::from("null")
+                    literal: TokenLiteral::Null
                 }),
                 Ok(Token {
                     ttype: TokenType::Plus,
                     lexeme: String::from("+"),
-                    literal: String::from("null")
+                    literal: TokenLiteral::Null
                 }),
             ]
         );
@@ -564,7 +564,7 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Comma,
                     lexeme: String::from(","),
-                    literal: String::from("null")
+                    literal: TokenLiteral::Null
                 }),
                 Err(TokenError {
                     message: String::from("Unexpected character: @"),
@@ -573,7 +573,7 @@ mod iterator_tests {
                 Ok(Token {
                     ttype: TokenType::Plus,
                     lexeme: String::from("+"),
-                    literal: String::from("null")
+                    literal: TokenLiteral::Null
                 }),
             ]
         );
@@ -631,7 +631,7 @@ mod iterator_tests {
             [Ok(Token {
                 ttype: TokenType::Comment,
                 lexeme: String::from("//"),
-                literal: String::from("null"),
+                literal: TokenLiteral::Null,
             })]
         );
         assert_eq!(t.current_line, 2);
@@ -665,7 +665,7 @@ mod iterator_tests {
             [Ok(Token {
                 ttype: TokenType::Newline,
                 lexeme: String::from("\n"),
-                literal: String::from("null"),
+                literal: TokenLiteral::Null,
             })]
         );
         assert_eq!(t.current_line, 2);
@@ -697,7 +697,7 @@ mod iterator_tests {
             [Ok(Token {
                 ttype: TokenType::String,
                 lexeme: String::from("\"a string\""),
-                literal: String::from("a string"),
+                literal: TokenLiteral::String(String::from("a string")),
             })]
         );
     }
