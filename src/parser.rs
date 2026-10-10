@@ -63,6 +63,24 @@ pub struct Parser {
     index: usize,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct ParserError {
+    pub message: String,
+    pub token: Token,
+}
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "[line {}] Error: {} - Token: {}",
+            self.token.line, self.message, self.token.lexeme
+        )
+    }
+}
+
+pub type ParserResult<T> = Result<T, ParserError>;
+
 impl Parser {
     // Create a new Parser and ensure
     // the list of tokens includes at
