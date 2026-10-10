@@ -91,8 +91,8 @@ fn main() {
             let mut p = Parser::new(tokens);
 
             match p.expression() {
-                Some(v) => println!("{}", v),
-                None => panic!(),
+                Ok(v) => println!("{}", v),
+                _ => panic!(),
             }
         }
         _ => {

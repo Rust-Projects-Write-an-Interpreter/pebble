@@ -143,8 +143,8 @@ impl Parser {
     fn binary(
         &mut self,
         operators: &[TokenType],
-        next: fn(&mut Self) -> Option<Expression>,
-    ) -> Option<Expression> {
+        next: fn(&mut Self) -> ParserResult<Expression>,
+    ) -> ParserResult<Expression> {
         // Parse the left side of the binary operation.
         // This expression might be recursively
         // transformed if there is a chain of
@@ -174,11 +174,11 @@ impl Parser {
             };
         }
 
-        Some(expression)
+        Ok(expression)
     }
 
     // The main entry point of the parser.
-    pub fn expression(&mut self) -> Option<Expression> {
+    pub fn expression(&mut self) -> ParserResult<Expression> {
         self.equality()
     }
 
@@ -186,7 +186,7 @@ impl Parser {
     // identify an equality.
     //
     // equality -> comparison ( ( "!=" | "==" ) comparison )*
-    fn equality(&mut self) -> Option<Expression> {
+    fn equality(&mut self) -> ParserResult<Expression> {
         self.binary(
             &[TokenType::BangEqual, TokenType::EqualEqual],
             Self::comparison,
@@ -197,7 +197,7 @@ impl Parser {
     // identify a comparison.
     //
     // comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
-    fn comparison(&mut self) -> Option<Expression> {
+    fn comparison(&mut self) -> ParserResult<Expression> {
         self.binary(
             &[
                 TokenType::Less,
@@ -213,7 +213,7 @@ impl Parser {
     // identify an addition or a subtraction.
     //
     // term -> factor ( ( "+" | "-" ) factor )*
-    fn term(&mut self) -> Option<Expression> {
+    fn term(&mut self) -> ParserResult<Expression> {
         self.binary(&[TokenType::Plus, TokenType::Minus], Self::factor)
     }
 
@@ -221,7 +221,7 @@ impl Parser {
     // identify a multiplication or a division.
     //
     // factor -> unary ( ( "/" | "*" ) unary )*
-    fn factor(&mut self) -> Option<Expression> {
+    fn factor(&mut self) -> ParserResult<Expression> {
         self.binary(&[TokenType::Slash, TokenType::Star], Self::unary)
     }
 
@@ -229,9 +229,9 @@ impl Parser {
     // identify a unary operation.
     //
     // unary -> ( "!" | "-" ) unary | primary
-    fn unary(&mut self) -> Option<Expression> {
+    fn unary(&mut self) -> ParserResult<Expression> {
         if let Some(t) = self.match_current(&[TokenType::Bang, TokenType::Minus]) {
-            return Some(Expression::Unary {
+            return Ok(Expression::Unary {
                 operator: t.clone(),
                 right: Box::new(self.unary()?),
             });
@@ -244,7 +244,7 @@ impl Parser {
     // identify a primary element.
     //
     // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
-    fn primary(&mut self) -> Option<Expression> {
+    fn primary(&mut self) -> ParserResult<Expression> {
         // Get the current token.
         let c: &Token = self.current_token();
 
@@ -257,7 +257,12 @@ impl Parser {
                 Keyword::True => Expression::Literal(Literal::Boolean(true)),
                 Keyword::False => Expression::Literal(Literal::Boolean(false)),
                 Keyword::Nil => Expression::Literal(Literal::Nil),
-                _ => return None,
+                _ => {
+                    return Err(ParserError {
+                        message: String::from("Invalid primary token"),
+                        token: c.clone(),
+                    })
+                }
             },
             (TokenType::String, TokenLiteral::String(s)) => {
                 Expression::Literal(Literal::String(s.to_string()))
@@ -274,14 +279,19 @@ impl Parser {
                 // No need to consume it as it will
                 // be consumed below as the valid token.
                 if !self.check_current(&TokenType::RParen) {
-                    return None;
+                    return Err(ParserError {
+                        message: String::from("Missing closing round bracket ')'"),
+                        token: self.current_token().clone(),
+                    });
                 }
 
                 Expression::Group(Box::new(p))
             }
             _ => {
-                eprintln!("Invalid token  {}", c);
-                return None;
+                return Err(ParserError {
+                    message: String::from("Invalid primary token"),
+                    token: c.clone(),
+                });
             }
         };
 
@@ -290,8 +300,8 @@ impl Parser {
         // consuming the current token.
         self.consume();
 
-        // Return the token as an Option.
-        Some(result)
+        // Return the token as a Result.
+        Ok(result)
     }
 }
 
@@ -445,7 +455,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, Some(Expression::Literal(Literal::Boolean(true))));
+        assert_eq!(result, Ok(Expression::Literal(Literal::Boolean(true))));
         assert_eq!(parser.index, 1);
     }
 
@@ -461,7 +471,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, Some(Expression::Literal(Literal::Boolean(false))));
+        assert_eq!(result, Ok(Expression::Literal(Literal::Boolean(false))));
         assert_eq!(parser.index, 1);
     }
 
@@ -474,7 +484,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, Some(Expression::Literal(Literal::Nil)));
+        assert_eq!(result, Ok(Expression::Literal(Literal::Nil)));
         assert_eq!(parser.index, 1);
     }
 
@@ -491,7 +501,13 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, None);
+        assert_eq!(
+            result,
+            Err(ParserError {
+                message: String::from("Invalid primary token"),
+                token: dummy_token(TokenType::Reserved(Keyword::Class))
+            })
+        );
         assert_eq!(parser.index, 0);
     }
 
@@ -512,7 +528,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, Some(Expression::Literal(Literal::Number(123.0))));
+        assert_eq!(result, Ok(Expression::Literal(Literal::Number(123.0))));
         assert_eq!(parser.index, 1);
     }
 
@@ -533,7 +549,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
-        assert_eq!(result, Some(Expression::Literal(Literal::Number(123.4))));
+        assert_eq!(result, Ok(Expression::Literal(Literal::Number(123.4))));
         assert_eq!(parser.index, 1);
     }
 
@@ -556,7 +572,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Literal(Literal::String(String::from(
+            Ok(Expression::Literal(Literal::String(String::from(
                 "Some string"
             ))))
         );
@@ -581,7 +597,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Group(Box::new(Expression::Literal(
+            Ok(Expression::Group(Box::new(Expression::Literal(
                 Literal::Number(123.4)
             ))))
         );
@@ -608,7 +624,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Unary {
+            Ok(Expression::Unary {
                 operator: dummy_token(TokenType::Minus),
                 right: Box::new(Expression::Literal(Literal::Number(123.4)))
             })
@@ -636,7 +652,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Unary {
+            Ok(Expression::Unary {
                 operator: dummy_token(TokenType::Bang),
                 right: Box::new(Expression::Literal(Literal::Number(123.4)))
             })
@@ -665,7 +681,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Unary {
+            Ok(Expression::Unary {
                 operator: dummy_token(TokenType::Bang),
                 right: Box::new(Expression::Unary {
                     operator: dummy_token(TokenType::Bang),
@@ -698,7 +714,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Group(Box::new(Expression::Unary {
+            Ok(Expression::Group(Box::new(Expression::Unary {
                 operator: dummy_token(TokenType::Bang),
                 right: Box::new(Expression::Literal(Literal::Number(123.4)))
             })))
@@ -732,7 +748,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Slash),
                 right: Box::new(Expression::Literal(Literal::Number(456.0)))
@@ -767,7 +783,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Star),
                 right: Box::new(Expression::Literal(Literal::Number(456.0)))
@@ -810,7 +826,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Binary {
                     left: Box::new(Expression::Literal(Literal::Number(123.0))),
                     operator: dummy_token(TokenType::Star),
@@ -849,7 +865,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Plus),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -884,7 +900,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Minus),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -927,7 +943,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Binary {
                     left: Box::new(Expression::Literal(Literal::Number(123.0))),
                     operator: dummy_token(TokenType::Minus),
@@ -966,7 +982,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Less),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1001,7 +1017,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::LessEqual),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1036,7 +1052,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::Greater),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1071,7 +1087,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::GreaterEqual),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1114,7 +1130,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Binary {
                     left: Box::new(Expression::Literal(Literal::Number(123.0))),
                     operator: dummy_token(TokenType::Less),
@@ -1153,7 +1169,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::BangEqual),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1188,7 +1204,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Literal(Literal::Number(123.0))),
                 operator: dummy_token(TokenType::EqualEqual),
                 right: Box::new(Expression::Literal(Literal::Number(456.0))),
@@ -1230,7 +1246,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Some(Expression::Binary {
+            Ok(Expression::Binary {
                 left: Box::new(Expression::Binary {
                     left: Box::new(Expression::Literal(Literal::Number(123.0))),
                     operator: dummy_token(TokenType::BangEqual),
