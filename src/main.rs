@@ -2,11 +2,13 @@ use std::fs;
 use std::path::PathBuf;
 use std::process;
 
+use crate::parser::Parser;
 use crate::token::{Token, TokenError, TokenResult};
 use crate::tokenizer::tokenize;
 
 use clap::{Parser as CParser, Subcommand as CSubcommand};
 
+mod parser;
 mod token;
 mod tokenizer;
 
@@ -38,7 +40,7 @@ fn tokenize_source(filename: &PathBuf) -> Vec<TokenResult> {
 
 fn tokenize_process_results(
     results: Vec<TokenResult>,
-    ok: impl Fn(Token),
+    mut ok: impl FnMut(Token),
     err: impl Fn(TokenError),
 ) {
     // Initialise the error flag.
@@ -72,7 +74,26 @@ fn main() {
         Commands::Parse { filename } => {
             // Process the source and
             // extract Tokens or errors.
-            tokenize_source(&filename);
+            let results = tokenize_source(&filename);
+
+            // A vector of tokens extracted from the results.
+            let mut tokens: Vec<Token> = Vec::new();
+
+            tokenize_process_results(
+                results,
+                |token| tokens.push(token),
+                |error| eprintln!("{}", error),
+            );
+
+            let mut p = Parser::new(tokens);
+
+            match p.expression() {
+                Ok(v) => println!("{}", v),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    process::exit(65);
+                }
+            }
         }
         Commands::Tokenize { filename } => {
             // Process the source and
