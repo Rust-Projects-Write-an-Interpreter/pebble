@@ -408,12 +408,7 @@ pub fn tokenize(chars: Peekable<Chars>) -> Vec<TokenResult> {
     let mut results: Vec<TokenResult> = filtered.collect();
 
     // Make sure the last token is the End Of File
-    results.push(Ok(Token {
-        ttype: TokenType::Eof,
-        lexeme: String::from(""),
-        literal: TokenLiteral::Null,
-        line: 1,
-    }));
+    results.push(Ok(Token::eof()));
 
     results
 }
@@ -1484,12 +1479,7 @@ mod tokenize_tests {
                     literal: TokenLiteral::Null,
                     line: 1
                 }),
-                Ok(Token {
-                    ttype: TokenType::Eof,
-                    lexeme: String::from(""),
-                    literal: TokenLiteral::Null,
-                    line: 1
-                }),
+                Ok(Token::eof()),
             ]
         );
     }

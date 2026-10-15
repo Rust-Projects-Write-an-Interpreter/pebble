@@ -69,12 +69,7 @@ impl Parser {
     // least an Eof.
     pub fn new(mut tokens: Vec<Token>) -> Self {
         if tokens.last().is_none_or(|t| t.ttype != TokenType::Eof) {
-            tokens.push(Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            });
+            tokens.push(Token::eof());
         }
 
         Self { tokens, index: 0 }
@@ -335,7 +330,7 @@ mod tests {
         let tokens = vec![
             dummy_token(TokenType::Identifier),
             dummy_token(TokenType::Plus),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let previous = parser.consume();
@@ -349,13 +344,13 @@ mod tests {
     // the index and keeps the current
     // token unchanged.
     fn test_consume_end() {
-        let tokens = vec![dummy_token(TokenType::Eof)];
+        let tokens = vec![Token::eof()];
         let mut parser = Parser::new(tokens);
         parser.consume();
         let previous = parser.consume();
 
-        assert_eq!(previous, Some(&dummy_token(TokenType::Eof)));
-        assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Eof)));
+        assert_eq!(previous, Some(&Token::eof()));
+        assert_eq!(parser.current_token(), Some(&Token::eof()));
     }
 
     #[test]
@@ -365,24 +360,8 @@ mod tests {
         let mut parser = Parser::new(Vec::new());
         let previous = parser.consume();
 
-        assert_eq!(
-            previous,
-            Some(&Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            })
-        );
-        assert_eq!(
-            parser.current_token(),
-            Some(&Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            })
-        );
+        assert_eq!(previous, Some(&Token::eof()));
+        assert_eq!(parser.current_token(), Some(&Token::eof()));
     }
 
     #[test]
@@ -408,7 +387,7 @@ mod tests {
 
     #[test]
     fn test_check_current_end() {
-        let tokens = vec![dummy_token(TokenType::Eof)];
+        let tokens = vec![Token::eof()];
         let parser = Parser::new(tokens);
 
         // If we reached the end of the token sequence
@@ -438,10 +417,7 @@ mod tests {
     // when the type of the current token is not
     // included in the matching list.
     fn test_match_current_false() {
-        let tokens = vec![
-            dummy_token(TokenType::Identifier),
-            dummy_token(TokenType::Eof),
-        ];
+        let tokens = vec![dummy_token(TokenType::Identifier), Token::eof()];
         let mut parser = Parser::new(tokens);
         let matched = parser.match_current(&[TokenType::Number]);
 
@@ -456,7 +432,7 @@ mod tests {
     fn test_primary_true() {
         let tokens = vec![
             dummy_token(TokenType::Reserved(Keyword::True)),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -472,7 +448,7 @@ mod tests {
     fn test_primary_false() {
         let tokens = vec![
             dummy_token(TokenType::Reserved(Keyword::False)),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -486,10 +462,7 @@ mod tests {
     // correctly on a list of tokens that
     // contains reserved word `nil`.
     fn test_primary_nil() {
-        let tokens = vec![
-            dummy_token(TokenType::Reserved(Keyword::Nil)),
-            dummy_token(TokenType::Eof),
-        ];
+        let tokens = vec![dummy_token(TokenType::Reserved(Keyword::Nil)), Token::eof()];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
 
@@ -505,7 +478,7 @@ mod tests {
     fn test_primary_unknown_reserved() {
         let tokens = vec![
             dummy_token(TokenType::Reserved(Keyword::Class)),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -526,7 +499,7 @@ mod tests {
                 literal: TokenLiteral::Number(123.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -547,7 +520,7 @@ mod tests {
                 literal: TokenLiteral::Number(123.4),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -568,7 +541,7 @@ mod tests {
                 literal: TokenLiteral::String(String::from("Some string")),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -593,7 +566,7 @@ mod tests {
                 line: 1,
             },
             dummy_token(TokenType::RParen),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -620,7 +593,7 @@ mod tests {
                 literal: TokenLiteral::Number(123.4),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.unary();
@@ -648,7 +621,7 @@ mod tests {
                 literal: TokenLiteral::Number(123.4),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.unary();
@@ -677,7 +650,7 @@ mod tests {
                 literal: TokenLiteral::Number(123.4),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.unary();
@@ -710,7 +683,7 @@ mod tests {
                 line: 1,
             },
             dummy_token(TokenType::RParen),
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.primary();
@@ -744,7 +717,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.factor();
@@ -779,7 +752,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.factor();
@@ -822,7 +795,7 @@ mod tests {
                 literal: TokenLiteral::Number(789.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.factor();
@@ -861,7 +834,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.term();
@@ -896,7 +869,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.term();
@@ -939,7 +912,7 @@ mod tests {
                 literal: TokenLiteral::Number(789.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.term();
@@ -978,7 +951,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.comparison();
@@ -1013,7 +986,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.comparison();
@@ -1048,7 +1021,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.comparison();
@@ -1083,7 +1056,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.comparison();
@@ -1126,7 +1099,7 @@ mod tests {
                 literal: TokenLiteral::Number(789.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.comparison();
@@ -1165,7 +1138,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.equality();
@@ -1200,7 +1173,7 @@ mod tests {
                 literal: TokenLiteral::Number(456.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.equality();
@@ -1242,7 +1215,7 @@ mod tests {
                 literal: TokenLiteral::Number(789.0),
                 line: 1,
             },
-            dummy_token(TokenType::Eof),
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.equality();
@@ -1274,27 +1247,14 @@ mod tests {
                 literal: TokenLiteral::Number(123.0),
                 line: 1,
             },
-            Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            },
+            Token::eof(),
         ];
         let mut parser = Parser::new(tokens);
 
         // Consume the first token.
         parser.consume();
 
-        assert_eq!(
-            parser.current_token(),
-            Some(&Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            })
-        );
+        assert_eq!(parser.current_token(), Some(&Token::eof()));
         assert_eq!(parser.index, 1);
     }
 
@@ -1314,15 +1274,7 @@ mod tests {
         // Consume the first and only token.
         parser.consume();
 
-        assert_eq!(
-            parser.current_token(),
-            Some(&Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            })
-        );
+        assert_eq!(parser.current_token(), Some(&Token::eof()));
         assert_eq!(parser.index, 1);
     }
 
@@ -1337,15 +1289,7 @@ mod tests {
         // Try to consume a token.
         parser.consume();
 
-        assert_eq!(
-            parser.current_token(),
-            Some(&Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                literal: TokenLiteral::Null,
-                line: 1,
-            })
-        );
+        assert_eq!(parser.current_token(), Some(&Token::eof()));
         assert_eq!(parser.index, 0);
     }
 }

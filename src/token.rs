@@ -189,6 +189,17 @@ impl fmt::Display for Token {
     }
 }
 
+impl Token {
+    pub const fn eof() -> Self {
+        Self {
+            ttype: TokenType::Eof,
+            lexeme: String::new(),
+            literal: TokenLiteral::Null,
+            line: 1,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct TokenError {
     pub message: String,
@@ -295,5 +306,20 @@ mod tests {
     // into the corresponding string.
     fn test_keyword_as_str() {
         assert_eq!(Keyword::While.as_str(), "while");
+    }
+
+    #[test]
+    // Test that an Eof token can
+    // be correctly created.
+    fn test_eof() {
+        assert_eq!(
+            Token::eof(),
+            Token {
+                ttype: TokenType::Eof,
+                lexeme: String::new(),
+                literal: TokenLiteral::Null,
+                line: 1,
+            }
+        );
     }
 }
