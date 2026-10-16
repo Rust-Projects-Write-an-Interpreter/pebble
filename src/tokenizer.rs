@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::token::{Keyword, Token, TokenError, TokenLiteral, TokenResult, TokenType};
+use crate::token::{
+    build_lexemes_map, Keyword, Token, TokenError, TokenLiteral, TokenResult, TokenType,
+    MULTI_CHARACTER_LEXEMES, SINGLE_CHARACTER_LEXEMES,
+};
 
 pub struct Tokenizer<'a> {
     pub iter: Peekable<Chars<'a>>,
@@ -357,6 +360,45 @@ impl<'a> Iterator for Tokenizer<'a> {
             line: self.current_line,
         }))
     }
+}
+
+pub fn tokenize(chars: Peekable<Chars>) -> Vec<TokenResult> {
+    // Create a new tokenizer and
+    // instantiate it with the content
+    // of the input file.
+    let mut t = Tokenizer {
+        iter: chars,
+        current_character: None,
+        current_line: 1,
+        errors: false,
+        sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
+        mc_lexemes: build_lexemes_map(MULTI_CHARACTER_LEXEMES),
+    };
+
+    // Initialise the iterator
+    t.advance();
+
+    // Filter out comments, whitespaces, and newlines
+    let filtered = t.filter(|i| {
+        i.as_ref().map_or(true, |token| {
+            !matches!(
+                token.ttype,
+                TokenType::Comment | TokenType::Whitespace | TokenType::Newline
+            )
+        })
+    });
+
+    // Collect the results in a vector
+    let mut results: Vec<TokenResult> = filtered.collect();
+
+    // Make sure the last token is the End Of File
+    results.push(Ok(Token {
+        ttype: TokenType::Eof,
+        lexeme: String::from(""),
+        literal: TokenLiteral::Null,
+    }));
+
+    results
 }
 
 #[cfg(test)]
@@ -1360,6 +1402,48 @@ mod iterator_tests {
                 lexeme: Keyword::While.lexeme(),
                 literal: TokenLiteral::Null,
             })]
+        );
+    }
+}
+
+#[cfg(test)]
+mod tokenize_tests {
+    use super::*;
+
+    #[test]
+    // Test the function tokenize end-to-end.
+    fn test_tokenize() {
+        let results: Vec<TokenResult> = tokenize("for(==)".chars().peekable());
+
+        assert_eq!(
+            results,
+            [
+                Ok(Token {
+                    ttype: TokenType::Reserved(Keyword::For),
+                    lexeme: String::from("for"),
+                    literal: TokenLiteral::Null,
+                }),
+                Ok(Token {
+                    ttype: TokenType::LParen,
+                    lexeme: String::from("("),
+                    literal: TokenLiteral::Null,
+                }),
+                Ok(Token {
+                    ttype: TokenType::EqualEqual,
+                    lexeme: String::from("=="),
+                    literal: TokenLiteral::Null,
+                }),
+                Ok(Token {
+                    ttype: TokenType::RParen,
+                    lexeme: String::from(")"),
+                    literal: TokenLiteral::Null,
+                }),
+                Ok(Token {
+                    ttype: TokenType::Eof,
+                    lexeme: String::from(""),
+                    literal: TokenLiteral::Null,
+                }),
+            ]
         );
     }
 }

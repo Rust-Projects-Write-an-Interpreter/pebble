@@ -2,9 +2,8 @@ use std::env;
 use std::fs;
 use std::process;
 
-use crate::token::TokenType;
-use crate::token::{build_lexemes_map, MULTI_CHARACTER_LEXEMES, SINGLE_CHARACTER_LEXEMES};
-use crate::tokenizer::Tokenizer;
+use crate::token::TokenResult;
+use crate::tokenizer::tokenize;
 
 mod token;
 mod tokenizer;
@@ -21,45 +20,35 @@ fn main() {
 
     match command.as_str() {
         "tokenize" => {
+            // Open the input file and read the content.
             let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
                 eprintln!("Failed to read file {}", filename);
                 String::new()
             });
 
-            // Create a new tokenizer and
-            // instantiate it with the content
-            // of the input file.
-            let mut t = Tokenizer {
-                iter: file_contents.chars().peekable(),
-                current_character: None,
-                current_line: 1,
-                errors: false,
-                sc_lexemes: build_lexemes_map(SINGLE_CHARACTER_LEXEMES),
-                mc_lexemes: build_lexemes_map(MULTI_CHARACTER_LEXEMES),
-            };
+            // Initialise the error flag.
+            let mut errors: bool = false;
 
-            // Initialise the iterator
-            t.advance();
+            // Process the file and extract the
+            // token results.
+            let results: Vec<TokenResult> = tokenize(file_contents.chars().peekable());
 
-            // Iterate on the tokenizer
-            // and process each result.
-            for token in &mut t {
-                match token {
-                    Ok(token) => match token.ttype {
-                        TokenType::Comment => continue,
-                        TokenType::Whitespace => continue,
-                        TokenType::Newline => continue,
-                        _ => println!("{}", token),
-                    },
+            // Iterate through the results and print
+            // them accordingly on the stdout or the
+            // stderr. Record if there are errors.
+            for result in results {
+                match result {
+                    Ok(token) => println!("{}", token),
                     Err(e) => {
                         eprintln!("{}", e);
+                        errors = true;
                     }
                 }
             }
 
-            println!("EOF  null");
-
-            if t.errors {
+            // In case there were errors
+            // exit with a specific code.
+            if errors {
                 process::exit(65);
             }
         }
