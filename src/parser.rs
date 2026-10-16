@@ -7,6 +7,7 @@ pub enum Literal {
     Boolean(bool),
     Nil,
     Number(f64),
+    String(String),
 }
 
 impl fmt::Display for Literal {
@@ -16,6 +17,7 @@ impl fmt::Display for Literal {
             Self::Nil => f.write_str("nil"),
             Self::Number(n) if n.fract() == 0.0 => write!(f, "{n:.1}"),
             Self::Number(n) => write!(f, "{n}"),
+            Self::String(s) => f.write_str(s),
         }
     }
 }
@@ -58,7 +60,7 @@ impl Parser {
     // Parse the current token and try to
     // identify a primary element.
     //
-    // primary -> NUMBER | "true" | "false" | "nil"
+    // primary -> NUMBER | STRING | "true" | "false" | "nil"
     fn primary(&mut self) -> Option<Expression> {
         // If the current token is None return None.
         let c: &Token = self.current_token()?;
@@ -74,6 +76,9 @@ impl Parser {
                 Keyword::Nil => Expression::Literal(Literal::Nil),
                 _ => return None,
             },
+            (TokenType::String, TokenLiteral::String(s)) => {
+                Expression::Literal(Literal::String(s.to_string()))
+            }
             _ => {
                 eprintln!("Invalid token  {}", c);
                 return None;
@@ -232,6 +237,31 @@ mod tests {
         let result = parser.primary();
 
         assert_eq!(result, Some(Expression::Literal(Literal::Number(123.4))));
+        assert_eq!(parser.index, 1);
+    }
+
+    #[test]
+    // Test that the method `primary` works
+    // correctly on a list of tokens that
+    // contains a string.
+    fn test_primary_string() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::String,
+                lexeme: String::new(),
+                literal: TokenLiteral::String(String::from("Some string")),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.primary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Literal(Literal::String(String::from(
+                "Some string"
+            ))))
+        );
         assert_eq!(parser.index, 1);
     }
 }
