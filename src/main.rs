@@ -2,12 +2,14 @@ use std::fs;
 use std::path::PathBuf;
 use std::process;
 
+use crate::evaluate::evaluate;
 use crate::parser::Parser;
 use crate::token::{Token, TokenError, TokenResult};
 use crate::tokenizer::tokenize;
 
 use clap::{Parser as CParser, Subcommand as CSubcommand};
 
+mod evaluate;
 mod expression;
 mod parser;
 mod token;
@@ -15,6 +17,7 @@ mod tokenizer;
 
 #[derive(CSubcommand)]
 enum Commands {
+    Evaluate { filename: PathBuf },
     Parse { filename: PathBuf },
     Tokenize { filename: PathBuf },
 }
@@ -68,25 +71,51 @@ fn tokenize_process_results(
     }
 }
 
+fn parse_source(filename: &PathBuf) -> Parser {
+    // Process the source and
+    // extract Tokens or errors.
+    let results = tokenize_source(filename);
+
+    // A vector of tokens extracted from the results.
+    let mut tokens: Vec<Token> = Vec::new();
+
+    tokenize_process_results(
+        results,
+        |token| tokens.push(token),
+        |error| eprintln!("{}", error),
+    );
+
+    Parser::new(tokens)
+}
+
 fn main() {
     let args = Args::parse();
 
     match args.command {
+        Commands::Evaluate { filename } => {
+            // Process the source and
+            // extract a parser.
+            let mut p = parse_source(&filename);
+
+            let parsed = p.expression().unwrap_or_else(|e| {
+                eprintln!("{}", e);
+                process::exit(65);
+            });
+
+            let result = evaluate(&parsed);
+
+            match result {
+                Ok(v) => println!("{}", v),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    process::exit(65);
+                }
+            }
+        }
         Commands::Parse { filename } => {
             // Process the source and
-            // extract Tokens or errors.
-            let results = tokenize_source(&filename);
-
-            // A vector of tokens extracted from the results.
-            let mut tokens: Vec<Token> = Vec::new();
-
-            tokenize_process_results(
-                results,
-                |token| tokens.push(token),
-                |error| eprintln!("{}", error),
-            );
-
-            let mut p = Parser::new(tokens);
+            // extract a parser.
+            let mut p = parse_source(&filename);
 
             match p.expression() {
                 Ok(v) => println!("{}", v),
