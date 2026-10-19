@@ -101,6 +101,9 @@ fn evaluate_binary(
         (TokenType::GreaterEqual, Value::Number(a), Value::Number(b)) => Ok(Value::Boolean(a >= b)),
         (TokenType::Less, Value::Number(a), Value::Number(b)) => Ok(Value::Boolean(a < b)),
         (TokenType::LessEqual, Value::Number(a), Value::Number(b)) => Ok(Value::Boolean(a <= b)),
+        // Equality
+        (TokenType::BangEqual, l, r) => Ok(Value::Boolean(l != r)),
+        (TokenType::EqualEqual, l, r) => Ok(Value::Boolean(l == r)),
         // Strings
         (TokenType::Plus, Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
         (TokenType::Plus, _, _) => Err(EvaluationError::new(

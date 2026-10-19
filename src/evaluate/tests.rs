@@ -3,6 +3,7 @@ use crate::test_utils::dummy_token;
 
 mod binary_arithmetic;
 mod binary_comparisons;
+mod binary_equality;
 mod binary_strings;
 mod literal_group;
 mod unary;
