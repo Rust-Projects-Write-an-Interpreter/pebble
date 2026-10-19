@@ -15,6 +15,9 @@ mod parser;
 mod token;
 mod tokenizer;
 
+#[cfg(test)]
+mod test_utils;
+
 #[derive(CSubcommand)]
 enum Commands {
     Evaluate { filename: PathBuf },

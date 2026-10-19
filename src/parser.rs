@@ -257,18 +257,10 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::dummy_token;
     use crate::token::TokenLiteral;
 
     use super::*;
-
-    fn dummy_token(ttype: TokenType) -> Token {
-        Token {
-            ttype,
-            lexeme: String::new(),
-            literal: TokenLiteral::Null,
-            line: 1,
-        }
-    }
 
     #[test]
     // Test that the method `current_token`
