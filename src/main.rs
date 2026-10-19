@@ -111,7 +111,7 @@ fn main() {
                 Ok(v) => println!("{}", v),
                 Err(e) => {
                     eprintln!("{}", e);
-                    process::exit(65);
+                    process::exit(70);
                 }
             }
         }

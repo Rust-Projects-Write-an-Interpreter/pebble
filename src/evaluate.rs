@@ -76,7 +76,10 @@ fn evaluate_unary(operator: &Token, right: &Expression) -> EvaluationResult<Valu
         },
         TokenType::Minus => match value {
             Value::Number(n) => Ok(Value::Number(-n)),
-            _ => Err(EvaluationError::new(1, "Operand must be a number.")),
+            _ => Err(EvaluationError::new(
+                operator.line,
+                "Operand must be a number.",
+            )),
         },
         _ => unreachable!("Invalid unary operator {:?}", operator.ttype),
     }
@@ -107,9 +110,12 @@ fn evaluate_binary(
         // Strings
         (TokenType::Plus, Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
         (TokenType::Plus, _, _) => Err(EvaluationError::new(
-            1,
+            operator.line,
             "Operands must be two numbers or two strings.",
         )),
-        _ => Err(EvaluationError::new(1, "Operands must be numbers.")),
+        _ => Err(EvaluationError::new(
+            operator.line,
+            "Operands must be numbers.",
+        )),
     }
 }
