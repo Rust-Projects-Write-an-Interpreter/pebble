@@ -2,10 +2,12 @@ use std::fmt;
 
 use crate::expression::{Expression, Literal};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Value {
     Boolean(bool),
     Nil,
+    Number(f64),
+    String(String),
 }
 
 impl fmt::Display for Value {
@@ -13,6 +15,8 @@ impl fmt::Display for Value {
         match self {
             Self::Boolean(b) => write!(f, "{b}"),
             Self::Nil => f.write_str("nil"),
+            Self::Number(n) => write!(f, "{n}"),
+            Self::String(s) => f.write_str(s),
         }
     }
 }
@@ -44,6 +48,8 @@ pub fn evaluate(expression: &Expression) -> EvaluationResult<Value> {
     match expression {
         Expression::Literal(Literal::Boolean(b)) => Ok(Value::Boolean(*b)),
         Expression::Literal(Literal::Nil) => Ok(Value::Nil),
+        Expression::Literal(Literal::Number(n)) => Ok(Value::Number(*n)),
+        Expression::Literal(Literal::String(s)) => Ok(Value::String(s.clone())),
         _ => Err(EvaluationError::new(1, expression.to_string())),
     }
 }
@@ -77,5 +83,35 @@ mod tests {
         let expression = Expression::Literal(Literal::Nil);
 
         assert_eq!(evaluate(&expression), Ok(Value::Nil));
+    }
+
+    #[test]
+    // Test that an integer number literal
+    // evaluates to a number value.
+    fn test_evaluate_literal_number_integer() {
+        let expression = Expression::Literal(Literal::Number(42.0));
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.0)));
+    }
+
+    #[test]
+    // Test that a float number literal
+    // evaluates to a number value.
+    fn test_evaluate_literal_number_float() {
+        let expression = Expression::Literal(Literal::Number(42.5));
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.5)));
+    }
+
+    #[test]
+    // Test that a string literal
+    // evaluates to a string value.
+    fn test_evaluate_literal_string() {
+        let expression = Expression::Literal(Literal::String(String::from("Some string")));
+
+        assert_eq!(
+            evaluate(&expression),
+            Ok(Value::String(String::from("Some string")))
+        );
     }
 }
