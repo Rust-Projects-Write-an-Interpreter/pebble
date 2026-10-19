@@ -88,10 +88,17 @@ fn evaluate_binary(
     let rvalue = evaluate(right)?;
 
     match (&operator.ttype, lvalue, rvalue) {
+        // Arithmetic
         (TokenType::Minus, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a - b)),
         (TokenType::Plus, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
         (TokenType::Slash, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a / b)),
         (TokenType::Star, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a * b)),
+        // Strings
+        (TokenType::Plus, Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
+        (TokenType::Plus, _, _) => Err(EvaluationError::new(
+            1,
+            "Operands must be two numbers or two strings.",
+        )),
         _ => Err(EvaluationError::new(1, "Operands must be numbers.")),
     }
 }
@@ -696,5 +703,21 @@ mod tests {
         );
 
         assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Plus` can be
+    // used between strings.
+    fn test_evaluate_binary_plus_strings() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::String(String::from("StringA"))),
+            TokenType::Plus,
+            Expression::Literal(Literal::String(String::from("StringB"))),
+        );
+
+        assert_eq!(
+            evaluate(&expression),
+            Ok(Value::String(String::from("StringAStringB")))
+        );
     }
 }
