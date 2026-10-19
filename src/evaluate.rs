@@ -46,6 +46,7 @@ pub type EvaluationResult<T> = Result<T, EvaluationError>;
 
 pub fn evaluate(expression: &Expression) -> EvaluationResult<Value> {
     match expression {
+        Expression::Group(g) => evaluate(g),
         Expression::Literal(Literal::Boolean(b)) => Ok(Value::Boolean(*b)),
         Expression::Literal(Literal::Nil) => Ok(Value::Nil),
         Expression::Literal(Literal::Number(n)) => Ok(Value::Number(*n)),
@@ -113,5 +114,27 @@ mod tests {
             evaluate(&expression),
             Ok(Value::String(String::from("Some string")))
         );
+    }
+
+    #[test]
+    // Test that a group evaluates
+    // to the value of the expression
+    // it contains.
+    fn test_evaluate_group() {
+        let expression = Expression::Group(Box::new(Expression::Literal(Literal::Number(42.0))));
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.0)));
+    }
+
+    #[test]
+    // Test that a nested group evaluates
+    // to the value of the innermost
+    // expression.
+    fn test_evaluate_group_nested() {
+        let expression = Expression::Group(Box::new(Expression::Group(Box::new(
+            Expression::Literal(Literal::Number(42.0)),
+        ))));
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.0)));
     }
 }
