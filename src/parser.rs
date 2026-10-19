@@ -24,12 +24,14 @@ impl fmt::Display for Literal {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    Group(Box<Self>),
     Literal(Literal),
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name: String = match self {
+            Self::Group(p) => format!("(group {})", p),
             Self::Literal(s) => s.to_string(),
         };
         write!(f, "{}", name)
@@ -52,6 +54,29 @@ impl Parser {
         self.tokens.get(self.index)
     }
 
+    // Skip the current token, unless
+    // we already reached the end.
+    fn consume(&mut self) {
+        if self
+            .current_token()
+            .is_some_and(|t| t.ttype != TokenType::Eof)
+        {
+            self.index += 1;
+        }
+    }
+
+    // Check if the type of the current token
+    // corresponds to the given `TokenType` variant.
+    // `Option::filter` returns `Some` only when
+    // the condition is satisfied.
+    // So, in this case, only if the current token
+    // is not `Eof` and if there is a match between
+    // the current token and the given token type.
+    fn check_current(&self, token_type: &TokenType) -> Option<&Token> {
+        self.current_token()
+            .filter(|t| t.ttype != TokenType::Eof && t.ttype == *token_type)
+    }
+
     // The main entry point of the parser.
     pub fn expression(&mut self) -> Option<Expression> {
         self.primary()
@@ -60,7 +85,7 @@ impl Parser {
     // Parse the current token and try to
     // identify a primary element.
     //
-    // primary -> NUMBER | STRING | "true" | "false" | "nil"
+    // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
     fn primary(&mut self) -> Option<Expression> {
         // If the current token is None return None.
         let c: &Token = self.current_token()?;
@@ -78,6 +103,21 @@ impl Parser {
             },
             (TokenType::String, TokenLiteral::String(s)) => {
                 Expression::Literal(Literal::String(s.to_string()))
+            }
+            (TokenType::LParen, _) => {
+                // Consume the opening round bracket `(`.
+                self.consume();
+
+                // Parse the expression between brackets.
+                let p = self.expression()?;
+
+                // Check that the next token is
+                // the closing round bracket `)`.
+                // No need to consume it as it will
+                // be consumed below as the valid token.
+                self.check_current(&TokenType::RParen)?;
+
+                Expression::Group(Box::new(p))
             }
             _ => {
                 eprintln!("Invalid token  {}", c);
@@ -133,6 +173,79 @@ mod tests {
             parser.current_token(),
             Some(&dummy_token(TokenType::Identifier))
         );
+    }
+
+    #[test]
+    // Test that consuming a token makes the
+    // next one the current token.
+    fn test_consume() {
+        let tokens = vec![
+            dummy_token(TokenType::Identifier),
+            dummy_token(TokenType::Plus),
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        parser.consume();
+
+        assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Plus)));
+    }
+
+    #[test]
+    // Test that consuming `Eof` doesn't move
+    // the index and keeps the current
+    // token unchanged.
+    fn test_consume_end() {
+        let tokens = vec![dummy_token(TokenType::Eof)];
+        let mut parser = Parser { tokens, index: 0 };
+        parser.consume();
+        parser.consume();
+
+        assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Eof)));
+    }
+
+    #[test]
+    // Test that consuming an empty list of
+    // tokens just returns `None`.
+    fn test_consume_empty() {
+        let mut parser = Parser {
+            tokens: vec![],
+            index: 0,
+        };
+        parser.consume();
+
+        assert_eq!(parser.current_token(), None);
+    }
+
+    #[test]
+    fn test_check_current_true() {
+        let tokens = vec![dummy_token(TokenType::Plus)];
+        let parser = Parser { tokens, index: 0 };
+
+        assert_eq!(
+            parser.check_current(&TokenType::Plus),
+            Some(dummy_token(TokenType::Plus)).as_ref()
+        );
+        assert_eq!(parser.index, 0);
+    }
+
+    #[test]
+    fn test_check_current_false() {
+        let tokens = vec![dummy_token(TokenType::Plus)];
+        let parser = Parser { tokens, index: 0 };
+
+        assert_eq!(parser.check_current(&TokenType::Number), None);
+        assert_eq!(parser.index, 0);
+    }
+
+    #[test]
+    fn test_check_current_end() {
+        let tokens = vec![dummy_token(TokenType::Eof)];
+        let parser = Parser { tokens, index: 0 };
+
+        // If we reached the end of the token sequence
+        // we return `None` without checking the type.
+        assert_eq!(parser.check_current(&TokenType::Eof), None);
+        assert_eq!(parser.index, 0);
     }
 
     #[test]
@@ -263,5 +376,29 @@ mod tests {
             ))))
         );
         assert_eq!(parser.index, 1);
+    }
+
+    #[test]
+    fn test_primary_group() {
+        let tokens = vec![
+            dummy_token(TokenType::LParen),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::RParen),
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.primary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Group(Box::new(Expression::Literal(
+                Literal::Number(123.4)
+            ))))
+        );
+        assert_eq!(parser.index, 3);
     }
 }
