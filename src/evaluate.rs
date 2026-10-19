@@ -88,6 +88,8 @@ fn evaluate_binary(
     let rvalue = evaluate(right)?;
 
     match (&operator.ttype, lvalue, rvalue) {
+        (TokenType::Minus, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a - b)),
+        (TokenType::Plus, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
         (TokenType::Slash, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a / b)),
         (TokenType::Star, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a * b)),
         _ => Err(EvaluationError::new(1, "Operands must be numbers.")),
@@ -559,6 +561,137 @@ mod tests {
         let expression = dummy_binary_expression(
             Expression::Literal(Literal::Nil),
             TokenType::Slash,
+            Expression::Literal(Literal::Number(42.0)),
+        );
+
+        assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Minus` works correctly
+    // with numbers that have no decimals.
+    fn test_evaluate_binary_minus_integer() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(50.0)),
+            TokenType::Minus,
+            Expression::Literal(Literal::Number(8.0)),
+        );
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.0)));
+    }
+
+    #[test]
+    // Test that `Minus` works correctly
+    // with float numbers.
+    fn test_evaluate_binary_minus_float() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(5.5)),
+            TokenType::Minus,
+            Expression::Literal(Literal::Number(2.25)),
+        );
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(3.25)));
+    }
+
+    #[test]
+    // Test that `Minus` returns a negative
+    // number when the right operand is
+    // greater than the left one.
+    fn test_evaluate_binary_minus_negative_result() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(8.0)),
+            TokenType::Minus,
+            Expression::Literal(Literal::Number(50.0)),
+        );
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(-42.0)));
+    }
+
+    #[test]
+    // Test that `Minus` with a boolean
+    // operand returns an error.
+    fn test_evaluate_binary_minus_boolean() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(42.0)),
+            TokenType::Minus,
+            Expression::Literal(Literal::Boolean(true)),
+        );
+
+        assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Minus` with a `nil`
+    // operand returns an error.
+    fn test_evaluate_binary_minus_nil() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Nil),
+            TokenType::Minus,
+            Expression::Literal(Literal::Number(42.0)),
+        );
+
+        assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Minus` cannot be
+    // used between strings.
+    fn test_evaluate_binary_minus_strings() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::String(String::from("StringA"))),
+            TokenType::Minus,
+            Expression::Literal(Literal::String(String::from("StringB"))),
+        );
+
+        assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Plus` works correctly
+    // with numbers that have no decimals.
+    fn test_evaluate_binary_plus_integer() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(34.0)),
+            TokenType::Plus,
+            Expression::Literal(Literal::Number(8.0)),
+        );
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(42.0)));
+    }
+
+    #[test]
+    // Test that `Plus` works correctly
+    // with float numbers.
+    fn test_evaluate_binary_plus_float() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(1.25)),
+            TokenType::Plus,
+            Expression::Literal(Literal::Number(2.5)),
+        );
+
+        assert_eq!(evaluate(&expression), Ok(Value::Number(3.75)));
+    }
+
+    #[test]
+    // Test that `Plus` with a boolean
+    // operand returns an error.
+    fn test_evaluate_binary_plus_boolean() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Number(42.0)),
+            TokenType::Plus,
+            Expression::Literal(Literal::Boolean(true)),
+        );
+
+        assert!(matches!(evaluate(&expression), Err(EvaluationError { .. })));
+    }
+
+    #[test]
+    // Test that `Plus` with a `nil`
+    // operand returns an error.
+    fn test_evaluate_binary_plus_nil() {
+        let expression = dummy_binary_expression(
+            Expression::Literal(Literal::Nil),
+            TokenType::Plus,
             Expression::Literal(Literal::Number(42.0)),
         );
 
