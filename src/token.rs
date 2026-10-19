@@ -22,53 +22,72 @@ pub enum Keyword {
     While,
 }
 
+pub const KEYWORDS: &[(&str, Keyword)] = &[
+    ("and", Keyword::And),
+    ("class", Keyword::Class),
+    ("else", Keyword::Else),
+    ("false", Keyword::False),
+    ("for", Keyword::For),
+    ("fun", Keyword::Fun),
+    ("if", Keyword::If),
+    ("nil", Keyword::Nil),
+    ("or", Keyword::Or),
+    ("print", Keyword::Print),
+    ("return", Keyword::Return),
+    ("super", Keyword::Super),
+    ("this", Keyword::This),
+    ("true", Keyword::True),
+    ("var", Keyword::Var),
+    ("while", Keyword::While),
+];
+
+impl Keyword {
+    // This is the string representation of
+    // a keyword, that is how a keyword appears
+    // in the source code.
+    pub fn as_str(&self) -> &'static str {
+        KEYWORDS
+            // Iterate through all keywords.
+            .iter()
+            // Find the element that corresponds
+            // to the current variant.
+            .find(|(_, k)| k == self)
+            // Map the value we found,
+            // dereferencing the &str.
+            .map(|(s, _)| *s)
+            // Return the Some value or crash.
+            .expect("Keyword missing from KEYWORDS list")
+    }
+
+    #[cfg(test)]
+    // Output the lexeme corresponding
+    // to the variant.
+    pub fn lexeme(&self) -> String {
+        self.as_str().to_string()
+    }
+}
+
 impl FromStr for Keyword {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "and" => Ok(Self::And),
-            "class" => Ok(Self::Class),
-            "else" => Ok(Self::Else),
-            "false" => Ok(Self::False),
-            "for" => Ok(Self::For),
-            "fun" => Ok(Self::Fun),
-            "if" => Ok(Self::If),
-            "nil" => Ok(Self::Nil),
-            "or" => Ok(Self::Or),
-            "print" => Ok(Self::Print),
-            "return" => Ok(Self::Return),
-            "super" => Ok(Self::Super),
-            "this" => Ok(Self::This),
-            "true" => Ok(Self::True),
-            "var" => Ok(Self::Var),
-            "while" => Ok(Self::While),
-            _ => Err(()),
-        }
+        KEYWORDS
+            // Iterate through all keywords.
+            .iter()
+            // Find the element that corresponds
+            // to the current string.
+            .find(|(name, _)| *name == s)
+            // Map the value we found,
+            // dereferencing the &Keyword.
+            .map(|(_, k)| *k)
+            // Convert the Option into a Result.
+            .ok_or(())
     }
 }
 
 impl fmt::Display for Keyword {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            Self::And => "and",
-            Self::Class => "class",
-            Self::Else => "else",
-            Self::False => "false",
-            Self::For => "for",
-            Self::Fun => "fun",
-            Self::If => "if",
-            Self::Nil => "nil",
-            Self::Or => "or",
-            Self::Print => "print",
-            Self::Return => "return",
-            Self::Super => "super",
-            Self::This => "this",
-            Self::True => "true",
-            Self::Var => "var",
-            Self::While => "while",
-        };
-        write!(f, "{}", name.to_uppercase())
+        write!(f, "{}", self.as_str().to_uppercase())
     }
 }
 
@@ -266,5 +285,12 @@ mod tests {
     // returns an error.
     fn test_keyword_from_str_empty() {
         assert_eq!("".parse::<Keyword>(), Err(()));
+    }
+
+    #[test]
+    // Test that a keyword is converted
+    // into the corresponding string.
+    fn test_keyword_as_str() {
+        assert_eq!(Keyword::While.as_str(), "while");
     }
 }

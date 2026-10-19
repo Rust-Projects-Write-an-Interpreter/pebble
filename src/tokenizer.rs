@@ -999,7 +999,7 @@ mod tests {
             t.identifier(),
             Some(Ok(Token {
                 ttype: TokenType::Reserved(Keyword::While),
-                lexeme: Keyword::While.to_string().to_lowercase(),
+                lexeme: Keyword::While.lexeme(),
                 literal: TokenLiteral::Null,
             }))
         );
@@ -1357,7 +1357,7 @@ mod iterator_tests {
             result,
             [Ok(Token {
                 ttype: TokenType::Reserved(Keyword::While),
-                lexeme: Keyword::While.to_string().to_lowercase(),
+                lexeme: Keyword::While.lexeme(),
                 literal: TokenLiteral::Null,
             })]
         );
