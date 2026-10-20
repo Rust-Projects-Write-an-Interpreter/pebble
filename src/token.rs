@@ -1,5 +1,76 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::str::FromStr;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Keyword {
+    And,
+    Class,
+    Else,
+    False,
+    For,
+    Fun,
+    If,
+    Nil,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
+    While,
+}
+
+impl FromStr for Keyword {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "and" => Ok(Self::And),
+            "class" => Ok(Self::Class),
+            "else" => Ok(Self::Else),
+            "false" => Ok(Self::False),
+            "for" => Ok(Self::For),
+            "fun" => Ok(Self::Fun),
+            "if" => Ok(Self::If),
+            "nil" => Ok(Self::Nil),
+            "or" => Ok(Self::Or),
+            "print" => Ok(Self::Print),
+            "return" => Ok(Self::Return),
+            "super" => Ok(Self::Super),
+            "this" => Ok(Self::This),
+            "true" => Ok(Self::True),
+            "var" => Ok(Self::Var),
+            "while" => Ok(Self::While),
+            _ => Err(()),
+        }
+    }
+}
+
+impl fmt::Display for Keyword {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            Self::And => "and",
+            Self::Class => "class",
+            Self::Else => "else",
+            Self::False => "false",
+            Self::For => "for",
+            Self::Fun => "fun",
+            Self::If => "if",
+            Self::Nil => "nil",
+            Self::Or => "or",
+            Self::Print => "print",
+            Self::Return => "return",
+            Self::Super => "super",
+            Self::This => "this",
+            Self::True => "true",
+            Self::Var => "var",
+            Self::While => "while",
+        };
+        write!(f, "{}", name.to_uppercase())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
@@ -23,6 +94,7 @@ pub enum TokenType {
     Plus,
     RBrace,
     RParen,
+    Reserved(Keyword),
     Semicolon,
     Slash,
     Star,
@@ -53,6 +125,7 @@ impl fmt::Display for TokenType {
             Self::Plus => "PLUS",
             Self::RBrace => "RIGHT_BRACE",
             Self::RParen => "RIGHT_PAREN",
+            Self::Reserved(s) => &s.to_string(),
             Self::Semicolon => "SEMICOLON",
             Self::Slash => "SLASH",
             Self::Star => "STAR",
@@ -163,5 +236,35 @@ mod tests {
         let literal = TokenLiteral::Number(42.42);
 
         assert_eq!(literal.to_string(), "42.42");
+    }
+
+    #[test]
+    // Test that a valid keyword string
+    // is converted into the corresponding
+    // Keyword variant.
+    fn test_keyword_from_str_valid() {
+        assert_eq!("while".parse::<Keyword>(), Ok(Keyword::While));
+    }
+
+    #[test]
+    // Test that a string that is not
+    // a keyword returns an error.
+    fn test_keyword_from_str_unknown() {
+        assert_eq!("foo".parse::<Keyword>(), Err(()));
+    }
+
+    #[test]
+    // Test that the conversion is
+    // case-sensitive, so the uppercase
+    // version of a keyword is not valid.
+    fn test_keyword_from_str_case_sensitive() {
+        assert_eq!("WHILE".parse::<Keyword>(), Err(()));
+    }
+
+    #[test]
+    // Test that an empty string
+    // returns an error.
+    fn test_keyword_from_str_empty() {
+        assert_eq!("".parse::<Keyword>(), Err(()));
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::token::{Token, TokenError, TokenLiteral, TokenResult, TokenType};
+use crate::token::{Keyword, Token, TokenError, TokenLiteral, TokenResult, TokenType};
 
 pub struct Tokenizer<'a> {
     pub iter: Peekable<Chars<'a>>,
@@ -246,7 +246,8 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Test the current characters and
-    // try to match an identifier.
+    // try to match an identifier or
+    // a reserved word.
     fn identifier(&mut self) -> Option<TokenResult> {
         // If the current character is None return None.
         let c = self.current_character?;
@@ -287,6 +288,15 @@ impl<'a> Tokenizer<'a> {
                     break;
                 }
             }
+        }
+
+        // Check if this is a reserved word.
+        if let Ok(k) = s.parse::<Keyword>() {
+            return Some(Ok(Token {
+                ttype: TokenType::Reserved(k),
+                lexeme: s.clone(),
+                literal: TokenLiteral::Null,
+            }));
         }
 
         // We don't need to advance as the current
@@ -964,6 +974,36 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // an identifier that is a
+    // reserved word.
+    fn test_identifier_reserved_word() {
+        let mut t = Tokenizer {
+            iter: "while".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.identifier(),
+            Some(Ok(Token {
+                ttype: TokenType::Reserved(Keyword::While),
+                lexeme: Keyword::While.to_string().to_lowercase(),
+                literal: TokenLiteral::Null,
+            }))
+        );
+    }
 }
 
 #[cfg(test)]
@@ -1287,6 +1327,37 @@ mod iterator_tests {
             [Ok(Token {
                 ttype: TokenType::Identifier,
                 lexeme: String::from("foo"),
+                literal: TokenLiteral::Null,
+            })]
+        );
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a reserved word.
+    fn test_reserved_word() {
+        let mut t = Tokenizer {
+            iter: "while".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // Initialise the iterator
+        t.advance();
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::Reserved(Keyword::While),
+                lexeme: Keyword::While.to_string().to_lowercase(),
                 literal: TokenLiteral::Null,
             })]
         );
