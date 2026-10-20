@@ -88,7 +88,7 @@ fn main() {
                 process::exit(65);
             }
 
-            let mut p = Parser { tokens, index: 0 };
+            let mut p = Parser::new(tokens);
 
             match p.expression() {
                 Some(v) => println!("{}", v),
