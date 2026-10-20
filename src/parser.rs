@@ -75,48 +75,41 @@ impl Parser {
         Self { tokens, index: 0 }
     }
 
-    // Return the current token as an Option.
-    fn current_token(&self) -> Option<&Token> {
-        self.tokens.get(self.index)
+    // Return the current token.
+    fn current_token(&self) -> &Token {
+        &self.tokens[self.index]
     }
 
     // Skip the current token, unless
     // we already reached the end.
     // Return the previous token.
-    fn consume(&mut self) -> Option<&Token> {
+    fn consume(&mut self) -> &Token {
         let previous = self.index;
 
-        if self
-            .current_token()
-            .is_some_and(|t| t.ttype != TokenType::Eof)
-        {
+        if self.current_token().ttype != TokenType::Eof {
             self.index += 1;
         }
 
-        self.tokens.get(previous)
+        &self.tokens[previous]
     }
 
     // Check if the type of the current token
     // corresponds to the given `TokenType` variant.
-    // `Option::filter` returns `Some` only when
-    // the condition is satisfied.
-    // So, in this case, only if the current token
+    // This is true only if the current token
     // is not `Eof` and if there is a match between
     // the current token and the given token type.
-    fn check_current(&self, token_type: &TokenType) -> Option<&Token> {
-        self.current_token()
-            .filter(|t| t.ttype != TokenType::Eof && t.ttype == *token_type)
+    fn check_current(&self, token_type: &TokenType) -> bool {
+        let current_token = self.current_token();
+
+        current_token.ttype != TokenType::Eof && current_token.ttype == *token_type
     }
 
     // Check if the type of the current token matches
     // one of the provided token types. If there is a
     // match, it consumes the token and returns it.
     fn match_current(&mut self, token_types: &[TokenType]) -> Option<&Token> {
-        if token_types
-            .iter()
-            .any(|ttype| self.check_current(ttype).is_some())
-        {
-            self.consume()
+        if token_types.iter().any(|ttype| self.check_current(ttype)) {
+            Some(self.consume())
         } else {
             None
         }
@@ -234,8 +227,8 @@ impl Parser {
     //
     // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
     fn primary(&mut self) -> Option<Expression> {
-        // If the current token is None return None.
-        let c: &Token = self.current_token()?;
+        // Get the current token.
+        let c: &Token = self.current_token();
 
         // Check the type of the current token.
         let result = match (&c.ttype, &c.literal) {
@@ -262,7 +255,9 @@ impl Parser {
                 // the closing round bracket `)`.
                 // No need to consume it as it will
                 // be consumed below as the valid token.
-                self.check_current(&TokenType::RParen)?;
+                if !self.check_current(&TokenType::RParen) {
+                    return None;
+                }
 
                 Expression::Group(Box::new(p))
             }
@@ -273,8 +268,9 @@ impl Parser {
         };
 
         // If we reach this point, the token we
-        // found was valid. Advance the index.
-        self.index += 1;
+        // found was valid. Advance the index
+        // consuming the current token.
+        self.consume();
 
         // Return the token as an Option.
         Some(result)
@@ -317,10 +313,7 @@ mod tests {
         let tokens = vec![dummy_token(TokenType::Identifier)];
         let parser = Parser::new(tokens);
 
-        assert_eq!(
-            parser.current_token(),
-            Some(&dummy_token(TokenType::Identifier))
-        );
+        assert_eq!(parser.current_token(), &dummy_token(TokenType::Identifier));
     }
 
     #[test]
@@ -335,8 +328,8 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let previous = parser.consume();
 
-        assert_eq!(previous, Some(&dummy_token(TokenType::Identifier)));
-        assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Plus)));
+        assert_eq!(previous, &dummy_token(TokenType::Identifier));
+        assert_eq!(parser.current_token(), &dummy_token(TokenType::Plus));
     }
 
     #[test]
@@ -349,8 +342,8 @@ mod tests {
         parser.consume();
         let previous = parser.consume();
 
-        assert_eq!(previous, Some(&Token::eof()));
-        assert_eq!(parser.current_token(), Some(&Token::eof()));
+        assert_eq!(previous, &Token::eof());
+        assert_eq!(parser.current_token(), &Token::eof());
     }
 
     #[test]
@@ -360,8 +353,8 @@ mod tests {
         let mut parser = Parser::new(Vec::new());
         let previous = parser.consume();
 
-        assert_eq!(previous, Some(&Token::eof()));
-        assert_eq!(parser.current_token(), Some(&Token::eof()));
+        assert_eq!(previous, &Token::eof());
+        assert_eq!(parser.current_token(), &Token::eof());
     }
 
     #[test]
@@ -369,10 +362,7 @@ mod tests {
         let tokens = vec![dummy_token(TokenType::Plus)];
         let parser = Parser::new(tokens);
 
-        assert_eq!(
-            parser.check_current(&TokenType::Plus),
-            Some(dummy_token(TokenType::Plus)).as_ref()
-        );
+        assert!(parser.check_current(&TokenType::Plus));
         assert_eq!(parser.index, 0);
     }
 
@@ -381,7 +371,7 @@ mod tests {
         let tokens = vec![dummy_token(TokenType::Plus)];
         let parser = Parser::new(tokens);
 
-        assert_eq!(parser.check_current(&TokenType::Number), None);
+        assert!(!parser.check_current(&TokenType::Number));
         assert_eq!(parser.index, 0);
     }
 
@@ -391,8 +381,8 @@ mod tests {
         let parser = Parser::new(tokens);
 
         // If we reached the end of the token sequence
-        // we return `None` without checking the type.
-        assert_eq!(parser.check_current(&TokenType::Eof), None);
+        // we return false without checking the type.
+        assert!(!parser.check_current(&TokenType::Eof));
         assert_eq!(parser.index, 0);
     }
 
@@ -1254,7 +1244,7 @@ mod tests {
         // Consume the first token.
         parser.consume();
 
-        assert_eq!(parser.current_token(), Some(&Token::eof()));
+        assert_eq!(parser.current_token(), &Token::eof());
         assert_eq!(parser.index, 1);
     }
 
@@ -1274,7 +1264,7 @@ mod tests {
         // Consume the first and only token.
         parser.consume();
 
-        assert_eq!(parser.current_token(), Some(&Token::eof()));
+        assert_eq!(parser.current_token(), &Token::eof());
         assert_eq!(parser.index, 1);
     }
 
@@ -1289,7 +1279,7 @@ mod tests {
         // Try to consume a token.
         parser.consume();
 
-        assert_eq!(parser.current_token(), Some(&Token::eof()));
+        assert_eq!(parser.current_token(), &Token::eof());
         assert_eq!(parser.index, 0);
     }
 }
