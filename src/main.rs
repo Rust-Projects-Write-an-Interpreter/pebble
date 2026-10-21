@@ -8,6 +8,7 @@ use crate::tokenizer::tokenize;
 
 use clap::{Parser as CParser, Subcommand as CSubcommand};
 
+mod expression;
 mod parser;
 mod token;
 mod tokenizer;
