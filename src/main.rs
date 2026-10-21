@@ -4,6 +4,7 @@ use std::process;
 
 use crate::evaluate::evaluate;
 use crate::parser::Parser;
+use crate::statement::Statement;
 use crate::token::{Token, TokenError, TokenResult};
 use crate::tokenizer::tokenize;
 
@@ -23,6 +24,7 @@ mod test_utils;
 enum Commands {
     Evaluate { filename: PathBuf },
     Parse { filename: PathBuf },
+    Run { filename: PathBuf },
     Tokenize { filename: PathBuf },
 }
 
@@ -126,6 +128,30 @@ fn main() {
                 Err(e) => {
                     eprintln!("{}", e);
                     process::exit(65);
+                }
+            }
+        }
+        Commands::Run { filename } => {
+            // Process the source and
+            // extract a parser.
+            let mut p = parse_source(&filename);
+
+            let statement = p.statement().unwrap_or_else(|e| {
+                eprintln!("{}", e);
+                process::exit(65);
+            });
+
+            match statement {
+                Statement::Print(e) => {
+                    let result = evaluate(&e);
+
+                    match result {
+                        Ok(v) => println!("{}", v),
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            process::exit(70);
+                        }
+                    }
                 }
             }
         }
