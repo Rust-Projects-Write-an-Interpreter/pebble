@@ -119,3 +119,57 @@ fn test_match_current_false() {
     assert_eq!(matched, None);
     assert_eq!(parser.index, 0);
 }
+
+#[test]
+// Test that the method `expect` consumes
+// and returns the current token when its
+// type matches the expected one.
+fn test_expect_match() {
+    let tokens = vec![
+        dummy_token(TokenType::Semicolon),
+        dummy_token(TokenType::Identifier),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.expect(&TokenType::Semicolon, "Expected ';'");
+
+    assert_eq!(result, Ok(&dummy_token(TokenType::Semicolon)));
+    assert_eq!(parser.index, 1);
+}
+
+#[test]
+// Test that the method `expect` returns
+// an error with the given message and the
+// current token when the types don't match.
+fn test_expect_no_match() {
+    let tokens = vec![dummy_token(TokenType::Identifier), Token::eof()];
+    let mut parser = Parser::new(tokens);
+    let result = parser.expect(&TokenType::Semicolon, "Expected ';'");
+
+    assert_eq!(
+        result,
+        Err(ParserError {
+            message: String::from("Expected ';'"),
+            token: dummy_token(TokenType::Identifier)
+        })
+    );
+    assert_eq!(parser.index, 0);
+}
+
+#[test]
+// Test that the method `expect` returns
+// an error when the parser reached `Eof`,
+// even if `Eof` is the expected type.
+fn test_expect_end() {
+    let tokens = vec![Token::eof()];
+    let mut parser = Parser::new(tokens);
+    let result = parser.expect(&TokenType::Eof, "Expected end");
+
+    assert_eq!(
+        result,
+        Err(ParserError {
+            message: String::from("Expected end"),
+            token: Token::eof()
+        })
+    );
+    assert_eq!(parser.index, 0);
+}

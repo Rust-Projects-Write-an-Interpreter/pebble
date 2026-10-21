@@ -87,6 +87,20 @@ impl Parser {
         }
     }
 
+    // Consume the current token if it matches
+    // the given type, otherwise return an
+    // error with the given message.
+    fn expect(&mut self, token_type: &TokenType, message: &str) -> ParserResult<&Token> {
+        if !self.check_current(token_type) {
+            return Err(ParserError {
+                message: String::from(message),
+                token: self.current_token().clone(),
+            });
+        }
+
+        Ok(self.consume())
+    }
+
     // Parse the next three tokens and try to
     // identify a binary operation that uses
     // one of the given operators.
@@ -136,15 +150,7 @@ impl Parser {
         // Enforce the presence of the keyword
         // `print`. If not present, the statement
         // is invalid.
-        if self
-            .match_current(&[TokenType::Reserved(Keyword::Print)])
-            .is_none()
-        {
-            return Err(ParserError {
-                message: String::from("Invalid statement"),
-                token: self.current_token().clone(),
-            });
-        }
+        self.expect(&TokenType::Reserved(Keyword::Print), "Invalid statement")?;
 
         // Parse the expression contained
         // in the print statement.
@@ -153,12 +159,7 @@ impl Parser {
         // Enforce the presence of a semicolon.
         // If not present, the statement
         // is invalid.
-        if self.match_current(&[TokenType::Semicolon]).is_none() {
-            return Err(ParserError {
-                message: String::from("Invalid statement"),
-                token: self.current_token().clone(),
-            });
-        }
+        self.expect(&TokenType::Semicolon, "Invalid statement")?;
 
         Ok(Statement::Print(expression))
     }
