@@ -232,6 +232,21 @@ impl Parser {
     //
     // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
     fn primary(&mut self) -> ParserResult<Expression> {
+        // Check if we are dealing with a group.
+        // A group is closed by a specific token
+        // (RParen), which needs to be matched
+        // after the expression is parsed.
+        if self.match_current(&[TokenType::LParen]).is_some() {
+            // Parse the expression between brackets.
+            let p = self.expression()?;
+
+            // Enforce the presence of a
+            // closing round bracket `)`.
+            self.expect(&TokenType::RParen, "Missing closing round bracket ')'")?;
+
+            return Ok(Expression::Group(Box::new(p)));
+        }
+
         // Get the current token.
         let c: &Token = self.current_token();
 
@@ -253,26 +268,6 @@ impl Parser {
             },
             (TokenType::String, TokenLiteral::String(s)) => {
                 Expression::Literal(Literal::String(s.to_string()))
-            }
-            (TokenType::LParen, _) => {
-                // Consume the opening round bracket `(`.
-                self.consume();
-
-                // Parse the expression between brackets.
-                let p = self.expression()?;
-
-                // Check that the next token is
-                // the closing round bracket `)`.
-                // No need to consume it as it will
-                // be consumed below as the valid token.
-                if !self.check_current(&TokenType::RParen) {
-                    return Err(ParserError {
-                        message: String::from("Missing closing round bracket ')'"),
-                        token: self.current_token().clone(),
-                    });
-                }
-
-                Expression::Group(Box::new(p))
             }
             _ => {
                 return Err(ParserError {
