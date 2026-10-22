@@ -193,3 +193,23 @@ fn test_group_can_contain_unary() {
     );
     assert_eq!(parser.index, 4);
 }
+
+#[test]
+// Test that the method `primary` works
+// correctly on a list of tokens that
+// contains an identifier.
+fn test_identifier() {
+    let identifier_token = Token {
+        ttype: TokenType::Identifier,
+        lexeme: String::from("somevar"),
+        literal: TokenLiteral::Null,
+        line: 1,
+    };
+
+    let tokens = vec![identifier_token.clone(), Token::eof()];
+    let mut parser = Parser::new(tokens);
+    let result = parser.primary();
+
+    assert_eq!(result, Ok(Expression::Variable(identifier_token)));
+    assert_eq!(parser.index, 1);
+}

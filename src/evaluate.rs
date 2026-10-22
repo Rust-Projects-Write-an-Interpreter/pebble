@@ -61,6 +61,7 @@ pub fn evaluate(expression: &Expression) -> EvaluationResult<Value> {
         Expression::Literal(Literal::Number(n)) => Ok(Value::Number(*n)),
         Expression::Literal(Literal::String(s)) => Ok(Value::String(s.clone())),
         Expression::Unary { operator, right } => evaluate_unary(operator, right),
+        Expression::Variable(_t) => todo!(),
     }
 }
 

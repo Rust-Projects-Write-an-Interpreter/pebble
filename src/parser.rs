@@ -323,7 +323,7 @@ impl Parser {
     // Parse the current token and try to
     // identify a primary element.
     //
-    // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
+    // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER
     fn primary(&mut self) -> ParserResult<Expression> {
         // Check if we are dealing with a group.
         // A group is closed by a specific token
@@ -362,6 +362,7 @@ impl Parser {
             (TokenType::String, TokenLiteral::String(s)) => {
                 Expression::Literal(Literal::String(s.to_string()))
             }
+            (TokenType::Identifier, _) => Expression::Variable(c.clone()),
             _ => {
                 return Err(ParserError {
                     message: String::from("Invalid primary token"),

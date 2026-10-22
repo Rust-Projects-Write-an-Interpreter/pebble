@@ -35,6 +35,7 @@ pub enum Expression {
         operator: Token,
         right: Box<Self>,
     },
+    Variable(Token),
 }
 
 impl fmt::Display for Expression {
@@ -48,6 +49,7 @@ impl fmt::Display for Expression {
             Self::Group(p) => format!("(group {})", p),
             Self::Literal(s) => s.to_string(),
             Self::Unary { operator, right } => format!("({} {})", operator.lexeme, right),
+            Self::Variable(t) => t.lexeme.clone(),
         };
         write!(f, "{}", name)
     }
