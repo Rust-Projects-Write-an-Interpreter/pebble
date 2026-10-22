@@ -52,28 +52,6 @@ fn test_print_invalid_expression() {
 #[test]
 // Test that the method `statement` returns
 // the correct error when it parses a
-// statement that does not start with `print`.
-fn test_print_missing_keyword() {
-    let tokens = vec![
-        dummy_token(TokenType::Reserved(Keyword::True)),
-        Token::eof(),
-    ];
-    let mut parser = Parser::new(tokens);
-    let result = parser.statement();
-
-    assert_eq!(
-        result,
-        Err(ParserError {
-            message: String::from("Invalid statement"),
-            token: dummy_token(TokenType::Reserved(Keyword::True)),
-        })
-    );
-    assert_eq!(parser.index, 0);
-}
-
-#[test]
-// Test that the method `statement` returns
-// the correct error when it parses a
 // statement that does not end with a semicolon.
 fn test_print_missing_semicolon() {
     let tokens = vec![
@@ -92,4 +70,49 @@ fn test_print_missing_semicolon() {
         })
     );
     assert_eq!(parser.index, 2);
+}
+
+#[test]
+// Test that the method `statement` works
+// correctly on a statement in the form
+// `EXPRESSION;`.
+fn test_expression_valid_statement() {
+    let tokens = vec![
+        dummy_token(TokenType::Reserved(Keyword::True)),
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Ok(Statement::Expression(Expression::Literal(
+            Literal::Boolean(true)
+        )))
+    );
+    assert_eq!(parser.index, 2);
+}
+
+#[test]
+// Test that the method `statement` returns
+// the correct error when it parses an expression
+// statement that contains an invalid expression.
+fn test_expression_invalid_expression() {
+    let tokens = vec![
+        dummy_token(TokenType::Equal),
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Err(ParserError {
+            message: String::from("Invalid primary token"),
+            token: dummy_token(TokenType::Equal)
+        })
+    );
+    assert_eq!(parser.index, 0);
 }

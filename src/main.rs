@@ -143,6 +143,17 @@ fn main() {
 
             for statement in statements {
                 match statement {
+                    Statement::Expression(e) => {
+                        let result = evaluate(&e);
+
+                        match result {
+                            Ok(_) => {}
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                process::exit(70);
+                            }
+                        }
+                    }
                     Statement::Print(e) => {
                         let result = evaluate(&e);
 

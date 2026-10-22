@@ -168,13 +168,13 @@ impl Parser {
 
     // Parse the next tokens as a statement.
     pub fn statement(&mut self) -> ParserResult<Statement> {
-        // Enforce the presence of the keyword
-        // `print`. If not present, the statement
-        // is invalid.
-        self.expect(&TokenType::Reserved(Keyword::Print), "Invalid statement")?;
+        // Check the presence of the keyword `print`.
+        let print = self
+            .match_current(&[TokenType::Reserved(Keyword::Print)])
+            .is_some();
 
         // Parse the expression contained
-        // in the print statement.
+        // in the statement.
         let expression = self.expression()?;
 
         // Enforce the presence of a semicolon.
@@ -182,7 +182,13 @@ impl Parser {
         // is invalid.
         self.expect(&TokenType::Semicolon, "Invalid statement")?;
 
-        Ok(Statement::Print(expression))
+        // If this is a print statement
+        // output the correct variant.
+        if print {
+            return Ok(Statement::Print(expression));
+        }
+
+        Ok(Statement::Expression(expression))
     }
 
     // Parse the next tokens as an expression.
