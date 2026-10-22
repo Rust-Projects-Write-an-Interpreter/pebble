@@ -151,6 +151,34 @@ fn test_var_valid_statement_with_expression() {
 }
 
 #[test]
+// Test that the method `statement` works
+// correctly on a statement in the form
+// `var IDENTIFIER;`.
+fn test_var_valid_statement_without_expression() {
+    let varname = String::from("somevar");
+
+    let tokens = vec![
+        dummy_token(TokenType::Reserved(Keyword::Var)),
+        Token {
+            ttype: TokenType::Identifier,
+            lexeme: varname.clone(),
+            literal: TokenLiteral::Null,
+            line: 1,
+        },
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Ok(Statement::Var(varname, Expression::Literal(Literal::Nil)))
+    );
+    assert_eq!(parser.index, 3);
+}
+
+#[test]
 // Test that the method `statement` returns
 // the correct error when it parses a var
 // statement without an identifier.

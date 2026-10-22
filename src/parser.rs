@@ -226,14 +226,14 @@ impl Parser {
             .expect(&TokenType::Identifier, "Invalid statement")?
             .clone();
 
-        // Enforce the presence of an equal `=`.
-        // If not present, the statement
-        // is invalid.
-        self.expect(&TokenType::Equal, "Invalid statement")?;
-
-        // Parse the remaining tokens
-        // as an expression.
-        let expression = self.expression()?;
+        // If the next token is an equal `=`,
+        // skip it and parse the remaining tokens
+        // as an expression. Otherwise
+        // just return `nil`.
+        let expression = match self.match_current(&[TokenType::Equal]) {
+            Some(_) => self.expression()?,
+            None => Expression::Literal(Literal::Nil),
+        };
 
         // Enforce the presence of a semicolon.
         // If not present, the statement
