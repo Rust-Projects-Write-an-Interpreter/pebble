@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::expression::{Expression, Literal};
+use crate::statement::Statement;
 use crate::token::{Keyword, Token, TokenLiteral, TokenType};
 
 #[cfg(test)]
@@ -131,6 +132,38 @@ impl Parser {
     }
 
     // The main entry point of the parser.
+    pub fn statement(&mut self) -> ParserResult<Statement> {
+        // Enforce the presence of the keyword
+        // `print`. If not present, the statement
+        // is invalid.
+        if self
+            .match_current(&[TokenType::Reserved(Keyword::Print)])
+            .is_none()
+        {
+            return Err(ParserError {
+                message: String::from("Invalid statement"),
+                token: self.current_token().clone(),
+            });
+        }
+
+        // Parse the expression contained
+        // in the print statement.
+        let expression = self.expression()?;
+
+        // Enforce the presence of a semicolon.
+        // If not present, the statement
+        // is invalid.
+        if self.match_current(&[TokenType::Semicolon]).is_none() {
+            return Err(ParserError {
+                message: String::from("Invalid statement"),
+                token: self.current_token().clone(),
+            });
+        }
+
+        Ok(Statement::Print(expression))
+    }
+
+    // Parse the next tokens as an expression.
     pub fn expression(&mut self) -> ParserResult<Expression> {
         self.equality()
     }

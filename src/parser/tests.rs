@@ -8,6 +8,7 @@ mod equality;
 mod factor;
 mod parser;
 mod primary;
+mod statement;
 mod term;
 mod unary;
 mod utils;

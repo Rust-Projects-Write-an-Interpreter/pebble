@@ -12,6 +12,7 @@ use clap::{Parser as CParser, Subcommand as CSubcommand};
 mod evaluate;
 mod expression;
 mod parser;
+mod statement;
 mod token;
 mod tokenizer;
 
