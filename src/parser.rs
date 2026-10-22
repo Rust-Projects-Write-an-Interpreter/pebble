@@ -111,22 +111,40 @@ impl Parser {
         }
     }
 
-    // The main entry point of the parser.
-    pub fn expression(&mut self) -> Option<Expression> {
-        self.factor()
-    }
-
     // Parse the next three tokens and try to
-    // identify a multiplication or a division.
+    // identify a binary operation that uses
+    // one of the given operators.
+    // Fall back to the provided next function
+    // if the binary operation cannot be identified.
     //
-    // factor -> unary ( ( "/" | "*" ) unary )*
-    fn factor(&mut self) -> Option<Expression> {
-        let mut expression = self.unary()?;
+    // binary -> next ( ( operators ) next )*
+    fn binary(
+        &mut self,
+        operators: &[TokenType],
+        next: fn(&mut Self) -> Option<Expression>,
+    ) -> Option<Expression> {
+        // Parse the left side of the binary operation.
+        // This expression might be recursively
+        // transformed if there is a chain of
+        // binary operations.
+        let mut expression = next(self)?;
 
-        while let Some(t) = self.match_current(&[TokenType::Slash, TokenType::Star]) {
+        // Add the current operation to a
+        // binary structure while the next token
+        // matches one of the given operators.
+        while let Some(t) = self.match_current(operators) {
+            // Get the operator out of
+            // self to allow further
+            // mutable borrows.
             let operator = t.clone();
-            let right = self.unary()?;
 
+            // Parse the right side of
+            // the binary operation.
+            let right = next(self)?;
+
+            // Transform the expression, adding
+            // the previous one to the left side
+            // recursively.
             expression = Expression::Binary {
                 left: Box::new(expression),
                 operator,
@@ -135,6 +153,27 @@ impl Parser {
         }
 
         Some(expression)
+    }
+
+    // The main entry point of the parser.
+    pub fn expression(&mut self) -> Option<Expression> {
+        self.term()
+    }
+
+    // Parse the next three tokens and try to
+    // identify an addition or a subtraction.
+    //
+    // term -> factor ( ( "+" | "-" ) factor )*
+    fn term(&mut self) -> Option<Expression> {
+        self.binary(&[TokenType::Plus, TokenType::Minus], Self::factor)
+    }
+
+    // Parse the next three tokens and try to
+    // identify a multiplication or a division.
+    //
+    // factor -> unary ( ( "/" | "*" ) unary )*
+    fn factor(&mut self) -> Option<Expression> {
+        self.binary(&[TokenType::Slash, TokenType::Star], Self::unary)
     }
 
     // Parse the next two tokens and try to
@@ -726,6 +765,116 @@ mod tests {
                 }),
                 operator: dummy_token(TokenType::Slash),
                 right: Box::new(Expression::Literal(Literal::Number(789.0)))
+            })
+        );
+        assert_eq!(parser.index, 5);
+    }
+
+    #[test]
+    // Test that the method `term` works
+    // correctly with two primaries and
+    // a token `Plus`.
+    fn test_term_plus() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Plus),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.term();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Plus),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `term` works
+    // correctly with two primaries and
+    // a token `Minus`.
+    fn test_term_minus() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Minus),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.term();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                operator: dummy_token(TokenType::Minus),
+                right: Box::new(Expression::Literal(Literal::Number(456.0))),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `term` works
+    // correctly with multiple primaries
+    // chained by either Plus or Minus
+    // tokens.
+    fn test_term_chain() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Minus),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(456.0),
+            },
+            dummy_token(TokenType::Plus),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(789.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.term();
+
+        assert_eq!(
+            result,
+            Some(Expression::Binary {
+                left: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Literal(Literal::Number(123.0))),
+                    operator: dummy_token(TokenType::Minus),
+                    right: Box::new(Expression::Literal(Literal::Number(456.0))),
+                }),
+                operator: dummy_token(TokenType::Plus),
+                right: Box::new(Expression::Literal(Literal::Number(789.0))),
             })
         );
         assert_eq!(parser.index, 5);
