@@ -175,6 +175,13 @@ impl Parser {
             return Ok(s);
         }
 
+        // Try to parse the next tokens
+        // as a var statement. If successful,
+        // return the parsed statement.
+        if let Some(s) = self.statement_var()? {
+            return Ok(s);
+        }
+
         // If we are here, the statement
         // contains only an expression.
         self.statement_expression()
@@ -200,6 +207,40 @@ impl Parser {
         self.expect(&TokenType::Semicolon, "Invalid statement")?;
 
         Ok(Some(Statement::Print(expression)))
+    }
+
+    // Parse the next tokens as a var statement.
+    pub fn statement_var(&mut self) -> ParserResult<Option<Statement>> {
+        // Check the presence of the keyword `var`.
+        if self
+            .match_current(&[TokenType::Reserved(Keyword::Var)])
+            .is_none()
+        {
+            return Ok(None);
+        }
+
+        // Enforce the presence of an identifier.
+        // If not present, the statement
+        // is invalid.
+        let identifier = self
+            .expect(&TokenType::Identifier, "Invalid statement")?
+            .clone();
+
+        // Enforce the presence of an equal `=`.
+        // If not present, the statement
+        // is invalid.
+        self.expect(&TokenType::Equal, "Invalid statement")?;
+
+        // Parse the remaining tokens
+        // as an expression.
+        let expression = self.expression()?;
+
+        // Enforce the presence of a semicolon.
+        // If not present, the statement
+        // is invalid.
+        self.expect(&TokenType::Semicolon, "Invalid statement")?;
+
+        Ok(Some(Statement::Var(identifier.lexeme, expression)))
     }
 
     // Parse the next tokens as an expression statement.

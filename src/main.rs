@@ -165,6 +165,9 @@ fn main() {
                             }
                         }
                     }
+                    Statement::Var(_s, e) => {
+                        let _value = evaluate(&e);
+                    }
                 }
             }
         }

@@ -116,3 +116,91 @@ fn test_expression_invalid_expression() {
     );
     assert_eq!(parser.index, 0);
 }
+
+#[test]
+// Test that the method `statement` works
+// correctly on a statement in the form
+// `var IDENTIFIER = EXPRESSION;`.
+fn test_var_valid_statement_with_expression() {
+    let varname = String::from("somevar");
+
+    let tokens = vec![
+        dummy_token(TokenType::Reserved(Keyword::Var)),
+        Token {
+            ttype: TokenType::Identifier,
+            lexeme: varname.clone(),
+            literal: TokenLiteral::Null,
+            line: 1,
+        },
+        dummy_token(TokenType::Equal),
+        dummy_token(TokenType::Reserved(Keyword::True)),
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Ok(Statement::Var(
+            varname,
+            Expression::Literal(Literal::Boolean(true))
+        ))
+    );
+    assert_eq!(parser.index, 5);
+}
+
+#[test]
+// Test that the method `statement` returns
+// the correct error when it parses a var
+// statement without an identifier.
+fn test_var_missing_identifier() {
+    let tokens = vec![
+        dummy_token(TokenType::Reserved(Keyword::Var)),
+        dummy_token(TokenType::Equal),
+        dummy_token(TokenType::Reserved(Keyword::True)),
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Err(ParserError {
+            message: String::from("Invalid statement"),
+            token: dummy_token(TokenType::Equal)
+        })
+    );
+    assert_eq!(parser.index, 1);
+}
+
+#[test]
+// Test that the method `statement` returns
+// the correct error when it parses a var
+// statement with an invalid expression.
+fn test_var_invalid_expression() {
+    let tokens = vec![
+        dummy_token(TokenType::Reserved(Keyword::Var)),
+        Token {
+            ttype: TokenType::Identifier,
+            lexeme: String::from("varname"),
+            literal: TokenLiteral::Null,
+            line: 1,
+        },
+        dummy_token(TokenType::Equal),
+        dummy_token(TokenType::Semicolon),
+        Token::eof(),
+    ];
+    let mut parser = Parser::new(tokens);
+    let result = parser.statement();
+
+    assert_eq!(
+        result,
+        Err(ParserError {
+            message: String::from("Invalid primary token"),
+            token: dummy_token(TokenType::Semicolon)
+        })
+    );
+    assert_eq!(parser.index, 3);
+}
