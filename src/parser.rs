@@ -1,11 +1,12 @@
 use std::fmt;
 
-use crate::token::{Keyword, Token, TokenType};
+use crate::token::{Keyword, Token, TokenLiteral, TokenType};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Literal {
     Boolean(bool),
     Nil,
+    Number(f64),
 }
 
 impl fmt::Display for Literal {
@@ -13,11 +14,13 @@ impl fmt::Display for Literal {
         match self {
             Self::Boolean(b) => write!(f, "{b}"),
             Self::Nil => f.write_str("nil"),
+            Self::Number(n) if n.fract() == 0.0 => write!(f, "{n:.1}"),
+            Self::Number(n) => write!(f, "{n}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Literal(Literal),
 }
@@ -55,14 +58,17 @@ impl Parser {
     // Parse the current token and try to
     // identify a primary element.
     //
-    // primary -> "true" | "false" | "nil"
+    // primary -> NUMBER | "true" | "false" | "nil"
     fn primary(&mut self) -> Option<Expression> {
         // If the current token is None return None.
         let c: &Token = self.current_token()?;
 
         // Check the type of the current token.
-        let result = match &c.ttype {
-            TokenType::Reserved(s) => match s {
+        let result = match (&c.ttype, &c.literal) {
+            (TokenType::Number, TokenLiteral::Number(n)) => {
+                Expression::Literal(Literal::Number(*n))
+            }
+            (TokenType::Reserved(s), _) => match s {
                 Keyword::True => Expression::Literal(Literal::Boolean(true)),
                 Keyword::False => Expression::Literal(Literal::Boolean(false)),
                 Keyword::Nil => Expression::Literal(Literal::Nil),
@@ -95,6 +101,20 @@ mod tests {
             lexeme: String::new(),
             literal: TokenLiteral::Null,
         }
+    }
+
+    #[test]
+    // Test that integer numbers are displayed
+    // correctly with a decimal part of `.0`.
+    fn test_literal_display_integer_number() {
+        assert_eq!(Literal::Number(42.0).to_string(), "42.0");
+    }
+
+    #[test]
+    // Test that float numbers are displayed
+    // correctly with a decimal part.
+    fn test_literal_display_decimal_number() {
+        assert_eq!(Literal::Number(42.5).to_string(), "42.5");
     }
 
     #[test]
@@ -173,5 +193,45 @@ mod tests {
 
         assert_eq!(result, None);
         assert_eq!(parser.index, 0);
+    }
+
+    #[test]
+    // Test that the method `primary` works
+    // correctly on a list of tokens that
+    // contains an integer number.
+    fn test_primary_number_integer() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.0),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.primary();
+
+        assert_eq!(result, Some(Expression::Literal(Literal::Number(123.0))));
+        assert_eq!(parser.index, 1);
+    }
+
+    #[test]
+    // Test that the method `primary` works
+    // correctly on a list of tokens that
+    // contains a float number.
+    fn test_primary_number_float() {
+        let tokens = vec![
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.primary();
+
+        assert_eq!(result, Some(Expression::Literal(Literal::Number(123.4))));
+        assert_eq!(parser.index, 1);
     }
 }
