@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process;
 
+use crate::environment::Environment;
 use crate::evaluate::evaluate;
 use crate::parser::Parser;
 use crate::statement::Statement;
@@ -10,6 +11,7 @@ use crate::tokenizer::tokenize;
 
 use clap::{Parser as CParser, Subcommand as CSubcommand};
 
+mod environment;
 mod evaluate;
 mod expression;
 mod parser;
@@ -103,12 +105,15 @@ fn main() {
             // extract a parser.
             let mut p = parse_source(&filename);
 
+            // Create an environment.
+            let mut env = Environment::new();
+
             let parsed = p.expression().unwrap_or_else(|e| {
                 eprintln!("{}", e);
                 process::exit(65);
             });
 
-            let result = evaluate(&parsed);
+            let result = evaluate(&parsed, &mut env);
 
             match result {
                 Ok(v) => println!("{}", v),
@@ -136,6 +141,9 @@ fn main() {
             // extract a parser.
             let mut p = parse_source(&filename);
 
+            // Create an environment.
+            let mut env = Environment::new();
+
             let statements = p.parse().unwrap_or_else(|e| {
                 eprintln!("{}", e);
                 process::exit(65);
@@ -144,7 +152,7 @@ fn main() {
             for statement in statements {
                 match statement {
                     Statement::Expression(e) => {
-                        let result = evaluate(&e);
+                        let result = evaluate(&e, &mut env);
 
                         match result {
                             Ok(_) => {}
@@ -155,7 +163,7 @@ fn main() {
                         }
                     }
                     Statement::Print(e) => {
-                        let result = evaluate(&e);
+                        let result = evaluate(&e, &mut env);
 
                         match result {
                             Ok(v) => println!("{}", v),
@@ -165,8 +173,16 @@ fn main() {
                             }
                         }
                     }
-                    Statement::Var(_s, e) => {
-                        let _value = evaluate(&e);
+                    Statement::Var(s, e) => {
+                        let value = evaluate(&e, &mut env);
+
+                        match value {
+                            Ok(v) => env.define(s.clone(), v),
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                process::exit(70);
+                            }
+                        }
                     }
                 }
             }

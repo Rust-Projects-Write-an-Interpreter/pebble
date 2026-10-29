@@ -1,12 +1,13 @@
 use std::fmt;
 
+use crate::environment::Environment;
 use crate::expression::{Expression, Literal};
 use crate::token::{Token, TokenType};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Boolean(bool),
     Nil,
@@ -48,25 +49,31 @@ impl EvaluationError {
 
 pub type EvaluationResult<T> = Result<T, EvaluationError>;
 
-pub fn evaluate(expression: &Expression) -> EvaluationResult<Value> {
+pub fn evaluate(expression: &Expression, env: &mut Environment) -> EvaluationResult<Value> {
     match expression {
         Expression::Binary {
             left,
             operator,
             right,
-        } => evaluate_binary(operator, left, right),
-        Expression::Group(g) => evaluate(g),
+        } => evaluate_binary(operator, left, right, env),
+        Expression::Group(g) => evaluate(g, env),
         Expression::Literal(Literal::Boolean(b)) => Ok(Value::Boolean(*b)),
         Expression::Literal(Literal::Nil) => Ok(Value::Nil),
         Expression::Literal(Literal::Number(n)) => Ok(Value::Number(*n)),
         Expression::Literal(Literal::String(s)) => Ok(Value::String(s.clone())),
-        Expression::Unary { operator, right } => evaluate_unary(operator, right),
-        Expression::Variable(_t) => todo!(),
+        Expression::Unary { operator, right } => evaluate_unary(operator, right, env),
+        Expression::Variable(t) => env
+            .get(&t.lexeme)
+            .map_err(|e| EvaluationError::new(t.line, e.message)),
     }
 }
 
-fn evaluate_unary(operator: &Token, right: &Expression) -> EvaluationResult<Value> {
-    let value = evaluate(right)?;
+fn evaluate_unary(
+    operator: &Token,
+    right: &Expression,
+    env: &mut Environment,
+) -> EvaluationResult<Value> {
+    let value = evaluate(right, env)?;
 
     match operator.ttype {
         TokenType::Bang => match value {
@@ -90,9 +97,10 @@ fn evaluate_binary(
     operator: &Token,
     left: &Expression,
     right: &Expression,
+    env: &mut Environment,
 ) -> EvaluationResult<Value> {
-    let lvalue = evaluate(left)?;
-    let rvalue = evaluate(right)?;
+    let lvalue = evaluate(left, env)?;
+    let rvalue = evaluate(right, env)?;
 
     match (&operator.ttype, lvalue, rvalue) {
         // Arithmetic
