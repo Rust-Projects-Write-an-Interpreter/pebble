@@ -182,6 +182,13 @@ impl Parser {
             return Ok(s);
         }
 
+        // Try to parse the next tokens
+        // as a block statement. If successful,
+        // return the parsed statement.
+        if let Some(s) = self.statement_block()? {
+            return Ok(s);
+        }
+
         // If we are here, the statement
         // contains only an expression.
         self.statement_expression()
@@ -241,6 +248,34 @@ impl Parser {
         self.expect(&TokenType::Semicolon, "Invalid statement")?;
 
         Ok(Some(Statement::Var(identifier.lexeme, expression)))
+    }
+
+    pub fn statement_block(&mut self) -> ParserResult<Option<Statement>> {
+        // Check the presence of the
+        // opening curly brace `{`.
+        if self.match_current(&[TokenType::LBrace]).is_none() {
+            return Ok(None);
+        }
+
+        // Prepare an empty vector to host
+        // the statements contained in the block.
+        let mut statements: Vec<Statement> = Vec::new();
+
+        // Parse statements until we find the
+        // closing curly brace `}` or the end
+        // of the file.
+        // Add each statement to the vector.
+        while !self.check_current(&TokenType::RBrace) && !self.check_eof() {
+            statements.push(self.statement()?);
+        }
+
+        // Enforce the presence of a
+        // closing curly brace `}`.
+        // If not present, the statement
+        // is invalid.
+        self.expect(&TokenType::RBrace, "Invalid statement")?;
+
+        Ok(Some(Statement::Block(statements)))
     }
 
     // Parse the next tokens as an expression statement.

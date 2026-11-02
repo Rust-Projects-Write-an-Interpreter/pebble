@@ -7,6 +7,7 @@ mod tests;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
+    Block(Vec<Self>),
     Expression(Expression),
     Print(Expression),
     Var(String, Expression),
@@ -18,6 +19,13 @@ pub fn execute(
     output: &mut impl FnMut(Value),
 ) -> EvaluationResult<()> {
     match statement {
+        Statement::Block(v) => {
+            let mut local_env = Environment::new();
+
+            for statement in v.iter() {
+                execute(statement, &mut local_env, output)?;
+            }
+        }
         Statement::Expression(expression) => {
             evaluate(expression, env)?;
         }

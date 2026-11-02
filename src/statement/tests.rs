@@ -5,6 +5,7 @@ use crate::evaluate::EvaluationError;
 use crate::expression::Literal;
 use crate::token::{Token, TokenLiteral, TokenType};
 
+mod block;
 mod expression;
 mod print;
 mod var;

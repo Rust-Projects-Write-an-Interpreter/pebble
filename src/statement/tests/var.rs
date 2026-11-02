@@ -62,4 +62,3 @@ fn test_incorrect() {
     assert!(output.is_empty());
     assert!(matches!(env.get(&var_name), Err(EnvironmentError { .. })));
 }
-
