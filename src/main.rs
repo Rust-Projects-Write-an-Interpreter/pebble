@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::process;
 
 use crate::environment::Environment;
-use crate::evaluate::evaluate;
+use crate::evaluate::{evaluate, Value};
 use crate::parser::Parser;
-use crate::statement::Statement;
+use crate::statement::execute;
 use crate::token::{Token, TokenError, TokenResult};
 use crate::tokenizer::tokenize;
 
@@ -149,41 +149,12 @@ fn main() {
                 process::exit(65);
             });
 
-            for statement in statements {
-                match statement {
-                    Statement::Expression(e) => {
-                        let result = evaluate(&e, &mut env);
+            for statement in &statements {
+                let mut output = |v: Value| println!("{}", v);
 
-                        match result {
-                            Ok(_) => {}
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                process::exit(70);
-                            }
-                        }
-                    }
-                    Statement::Print(e) => {
-                        let result = evaluate(&e, &mut env);
-
-                        match result {
-                            Ok(v) => println!("{}", v),
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                process::exit(70);
-                            }
-                        }
-                    }
-                    Statement::Var(s, e) => {
-                        let value = evaluate(&e, &mut env);
-
-                        match value {
-                            Ok(v) => env.define(s.clone(), v),
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                process::exit(70);
-                            }
-                        }
-                    }
+                if let Err(error) = execute(statement, &mut env, &mut output) {
+                    eprintln!("{}", error);
+                    process::exit(70);
                 }
             }
         }
