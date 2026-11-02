@@ -20,15 +20,24 @@ pub fn execute(
 ) -> EvaluationResult<()> {
     match statement {
         Statement::Block(v) => {
-            let mut local_env = Environment::new();
+            // Create a local environment for this
+            // block. Assign the given environment
+            // to it as parent.
+            let mut local_env = Environment::new_with_parent(std::mem::take(env));
 
-            // Link the local environment
-            // with the parent one.
-            local_env.add_parent(env);
+            // Avoid returning early with `?`. The
+            // parent environment has to be put
+            // back even if a statement fails.
+            let result = v
+                .iter()
+                .try_for_each(|statement| execute(statement, &mut local_env, output));
 
-            for statement in v.iter() {
-                execute(statement, &mut local_env, output)?;
-            }
+            // Restore the parent environment.
+            *env = local_env
+                .restore_parent()
+                .expect("Parent environment not present.");
+
+            result?;
         }
         Statement::Expression(expression) => {
             evaluate(expression, env)?;

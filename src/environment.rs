@@ -3,9 +3,13 @@ use std::fmt;
 
 use crate::evaluate::Value;
 
-#[derive(Debug)]
-pub struct Environment<'a> {
-    parent: Option<&'a Self>,
+// The Environment derives Default
+// in order to use std::mem::take
+// which leaves an empty environment in place
+// of the one that has been moved out.
+#[derive(Debug, Default)]
+pub struct Environment {
+    parent: Option<Box<Self>>,
     values: HashMap<String, Value>,
 }
 
@@ -22,17 +26,26 @@ impl fmt::Display for EnvironmentError {
 
 pub type EnvironmentResult<T> = Result<T, EnvironmentError>;
 
-impl<'a> Environment<'a> {
+impl Environment {
+    // Create a new environment
+    // without a parent.
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    // Create a new environment that
+    // takes ownership of the parent.
+    pub fn new_with_parent(parent: Self) -> Self {
         Self {
-            parent: None,
+            parent: Some(Box::new(parent)),
             values: HashMap::new(),
         }
     }
 
-    // Assign the given parent to the environment.
-    pub fn add_parent(&mut self, parent: &'a Self) {
-        self.parent = Some(parent);
+    // Consume the environment and give
+    // back ownership of the parent.
+    pub fn restore_parent(self) -> Option<Self> {
+        self.parent.map(|p| *p)
     }
 
     // Retrieve the value of a variable
@@ -52,7 +65,7 @@ impl<'a> Environment<'a> {
         // return an error.
         let Some(v) = value else {
             // Find the parent environment.
-            let Some(p) = self.parent else {
+            let Some(p) = &self.parent else {
                 // There is no parent environment.
                 return Err(EnvironmentError {
                     message: format!("Undefined variable {}.", name),
@@ -73,17 +86,30 @@ impl<'a> Environment<'a> {
         self.values.insert(name, value);
     }
 
-    // Assign a new value to an existing
-    // variable. Return an error if the
-    // variable is not defined.
+    // Assign a new value to an existing variable.
+    // If the variable doesn't exist in the current
+    // environment it tries to assign it in the
+    // parent environment.
+    // If the variable doesn't exist and there
+    // is no parent environment it returns
+    // an error.
     pub fn assign(&mut self, name: &str, value: Value) -> EnvironmentResult<()> {
-        let current = self.values.get_mut(name).ok_or_else(|| EnvironmentError {
-            message: format!("Undefined variable {}.", name),
-        })?;
+        if let Some(current) = self.values.get_mut(name) {
+            *current = value;
+            return Ok(());
+        }
 
-        *current = value;
+        // Find the parent environment.
+        let Some(p) = &mut self.parent else {
+            // There is no parent environment.
+            return Err(EnvironmentError {
+                message: format!("Undefined variable {}.", name),
+            });
+        };
 
-        Ok(())
+        // Assign the value in the
+        // parent environment.
+        p.assign(name, value)
     }
 }
 
@@ -227,7 +253,6 @@ mod tests {
     // child one.
     fn test_get_variable_from_parent() {
         let mut parent = Environment::new();
-        let mut child = Environment::new();
 
         // Define the variable in the parent
         // environment without using a method
@@ -238,8 +263,9 @@ mod tests {
             Value::String(String::from("parent")),
         );
 
-        // Connect child and parent environments.
-        child.add_parent(&parent);
+        // Create a child environment
+        // connected with the parent.
+        let child = Environment::new_with_parent(parent);
 
         assert_eq!(
             child.get("somevar"),
@@ -255,16 +281,6 @@ mod tests {
     // parent one.
     fn test_get_variable_from_parent_shadow() {
         let mut parent = Environment::new();
-        let mut child = Environment::new();
-
-        // Define the variable in the child
-        // environment without using a method
-        // of Environment to avoid cyclic
-        // test definitions.
-        child.values.insert(
-            String::from("somevar"),
-            Value::String(String::from("child")),
-        );
 
         // Define the variable in the parent
         // environment without using a method
@@ -275,8 +291,18 @@ mod tests {
             Value::String(String::from("parent")),
         );
 
-        // Connect child and parent environments.
-        child.add_parent(&parent);
+        // Create a child environment
+        // connected with the parent.
+        let mut child = Environment::new_with_parent(parent);
+
+        // Define the variable in the child
+        // environment without using a method
+        // of Environment to avoid cyclic
+        // test definitions.
+        child.values.insert(
+            String::from("somevar"),
+            Value::String(String::from("child")),
+        );
 
         assert_eq!(
             child.get("somevar"),
@@ -292,8 +318,6 @@ mod tests {
     // child one, not in the parent one.
     fn test_get_variable_from_grandparent() {
         let mut grandparent = Environment::new();
-        let mut parent = Environment::new();
-        let mut child = Environment::new();
 
         // Define the variable in the grandparent
         // environment without using a method
@@ -304,11 +328,13 @@ mod tests {
             Value::String(String::from("grandparent")),
         );
 
-        // Connect parent and grandparent environments.
-        parent.add_parent(&grandparent);
+        // Create a parent environment
+        // connected with the grandparent.
+        let parent = Environment::new_with_parent(grandparent);
 
-        // Connect child and parent environments.
-        child.add_parent(&parent);
+        // Create a child environment
+        // connected with the parent.
+        let child = Environment::new_with_parent(parent);
 
         assert_eq!(
             child.get("somevar"),
@@ -324,17 +350,6 @@ mod tests {
     // parent one, but not in the child one.
     fn test_get_variable_from_grandparent_shadow() {
         let mut grandparent = Environment::new();
-        let mut parent = Environment::new();
-        let mut child = Environment::new();
-
-        // Define the variable in the parent
-        // environment without using a method
-        // of Environment to avoid cyclic
-        // test definitions.
-        parent.values.insert(
-            String::from("somevar"),
-            Value::String(String::from("parent")),
-        );
 
         // Define the variable in the grandparent
         // environment without using a method
@@ -345,11 +360,22 @@ mod tests {
             Value::String(String::from("grandparent")),
         );
 
-        // Connect parent and grandparent environments.
-        parent.add_parent(&grandparent);
+        // Create a parent environment
+        // connected with the grandparent.
+        let mut parent = Environment::new_with_parent(grandparent);
 
-        // Connect child and parent environments.
-        child.add_parent(&parent);
+        // Define the variable in the parent
+        // environment without using a method
+        // of Environment to avoid cyclic
+        // test definitions.
+        parent.values.insert(
+            String::from("somevar"),
+            Value::String(String::from("parent")),
+        );
+
+        // Create a child environment
+        // connected with the parent.
+        let child = Environment::new_with_parent(parent);
 
         assert_eq!(
             child.get("somevar"),
@@ -360,10 +386,10 @@ mod tests {
     #[test]
     fn test_get_error_with_hierarchy() {
         let parent = Environment::new();
-        let mut child = Environment::new();
 
-        // Connect child and parent environments.
-        child.add_parent(&parent);
+        // Create a child environment
+        // connected with the parent.
+        let child = Environment::new_with_parent(parent);
 
         assert_eq!(
             child.get("somevar"),
@@ -371,5 +397,102 @@ mod tests {
                 message: String::from("Undefined variable somevar."),
             })
         );
+    }
+
+    #[test]
+    // Test that the method `assign` works
+    // correctly when used to assign a value
+    // to a variable defined in the parent
+    // environment and not in the child one.
+    fn test_assign_variable_in_parent() {
+        let mut parent = Environment::new();
+
+        // Define the variable in the parent
+        // environment without using a method
+        // of Environment to avoid cyclic
+        // test definitions.
+        parent
+            .values
+            .insert(String::from("somevar"), Value::Boolean(true));
+
+        // Create a child environment
+        // connected with the parent.
+        let mut child = Environment::new_with_parent(parent);
+
+        assert_eq!(child.assign("somevar", Value::Number(42.0)), Ok(()));
+
+        // Check that the assignment didn't
+        // define the variable in the child.
+        assert_eq!(child.values.get("somevar"), None);
+
+        // Get the parent back and check
+        // the new value without using
+        // a method of Environment to avoid
+        // cyclic test definitions.
+        let parent = child.restore_parent().unwrap();
+
+        assert_eq!(parent.values.get("somevar"), Some(&Value::Number(42.0)));
+    }
+
+    #[test]
+    // Test that the method `assign` returns
+    // the correct error when used to assign a
+    // value to a variable that doesn't exist
+    // in any environment of the hierarchy.
+    fn test_assign_error_with_hierarchy() {
+        let parent = Environment::new();
+
+        // Create a child environment
+        // connected with the parent.
+        let mut child = Environment::new_with_parent(parent);
+
+        assert_eq!(
+            child.assign("somevar", Value::Boolean(true)),
+            Err(EnvironmentError {
+                message: String::from("Undefined variable somevar."),
+            })
+        );
+    }
+
+    #[test]
+    // Test that the method `restore_parent`
+    // gives back the parent environment
+    // and drops the child one.
+    fn test_restore_parent() {
+        let mut parent = Environment::new();
+
+        // Define the variable in the parent
+        // environment without using a method
+        // of Environment to avoid cyclic
+        // test definitions.
+        parent
+            .values
+            .insert(String::from("somevar"), Value::Boolean(true));
+
+        // Create a child environment
+        // connected with the parent.
+        let mut child = Environment::new_with_parent(parent);
+
+        // Define a variable in the child
+        // environment without using a method
+        // of Environment to avoid cyclic
+        // test definitions.
+        child
+            .values
+            .insert(String::from("childvar"), Value::Boolean(false));
+
+        let parent = child.restore_parent().unwrap();
+
+        assert_eq!(parent.values.get("somevar"), Some(&Value::Boolean(true)));
+        assert_eq!(parent.values.get("childvar"), None);
+    }
+
+    #[test]
+    // Test that the method `restore_parent`
+    // returns None if there is no parent.
+    fn test_restore_parent_no_parent() {
+        let environment = Environment::new();
+
+        assert!(environment.restore_parent().is_none());
     }
 }
