@@ -244,6 +244,60 @@ impl<'a> Tokenizer<'a> {
             literal,
         }))
     }
+
+    // Test the current characters and
+    // try to match an identifier.
+    fn identifier(&mut self) -> Option<TokenResult> {
+        // If the current character is None return None.
+        let c = self.current_character?;
+
+        // If the current character is not a letter
+        // or an underscore return None.
+        if !c.is_ascii_alphabetic() && c != '_' {
+            return None;
+        }
+
+        let mut s = c.to_string();
+
+        loop {
+            // We already know the current character
+            // is part of the identifier, so let's start
+            // from the next one.
+            self.advance();
+
+            match self.current_character {
+                Some(v) => {
+                    // After the first character (a letter
+                    // or an underscore) we accept more letters,
+                    // underscores, or numbers.
+                    // If the character matches we can store it and
+                    // move on to the next character.
+                    if v.is_ascii_alphanumeric() || v == '_' {
+                        s.push(v);
+                        continue;
+                    }
+
+                    // The current character is neither a
+                    // letter nor an underscore, so we can stop here.
+                    break;
+                }
+                None => {
+                    // There is nothing left to read.
+                    // We can stop here.
+                    break;
+                }
+            }
+        }
+
+        // We don't need to advance as the current
+        // character is already something that doesn't
+        // belong to the identifier
+        Some(Ok(Token {
+            ttype: TokenType::Identifier,
+            lexeme: s.clone(),
+            literal: TokenLiteral::Null,
+        }))
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -252,6 +306,11 @@ impl<'a> Iterator for Tokenizer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         // If the current character is None return None.
         let current = self.current_character?;
+
+        // Try to match an identifier.
+        if let Some(t) = self.identifier() {
+            return Some(t);
+        }
 
         // Try to match a number.
         if let Some(t) = self.number() {
@@ -752,6 +811,159 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is not
+    // initialised and there is no current
+    // character.
+    fn test_identifier_no_current_character() {
+        let mut t = Tokenizer {
+            iter: "foo".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        assert_eq!(t.identifier(), None);
+    }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character, but the character is
+    // not a letter or an underscore.
+    fn test_identifier_no_letter_or_underscore() {
+        let mut t = Tokenizer {
+            iter: "(".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(t.identifier(), None);
+    }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // an identifier that starts with
+    // a digit.
+    fn test_identifier_cannot_start_with_digit() {
+        let mut t = Tokenizer {
+            iter: "8foo".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(t.identifier(), None);
+    }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // an identifier that is made only
+    // of letters.
+    fn test_identifier_all_letters() {
+        let mut t = Tokenizer {
+            iter: "foo".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.identifier(),
+            Some(Ok(Token {
+                ttype: TokenType::Identifier,
+                lexeme: String::from("foo"),
+                literal: TokenLiteral::Null,
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // an identifier that starts with
+    // an underscore.
+    fn test_identifier_start_with_underscore() {
+        let mut t = Tokenizer {
+            iter: "_foo".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.identifier(),
+            Some(Ok(Token {
+                ttype: TokenType::Identifier,
+                lexeme: String::from("_foo"),
+                literal: TokenLiteral::Null,
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method identifier
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // an identifier that starts with a letter
+    // and is made of letters and digits.
+    fn test_identifier_can_contain_digits() {
+        let mut t = Tokenizer {
+            iter: "foo8".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.identifier(),
+            Some(Ok(Token {
+                ttype: TokenType::Identifier,
+                lexeme: String::from("foo8"),
+                literal: TokenLiteral::Null,
+            }))
+        );
+    }
 }
 
 #[cfg(test)]
@@ -1046,6 +1258,37 @@ mod iterator_tests {
                     literal: TokenLiteral::Number(3.0),
                 }),
             ]
+        );
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // an identifier.
+    fn test_identifier() {
+        let mut t = Tokenizer {
+            iter: "foo".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // Initialise the iterator
+        t.advance();
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::Identifier,
+                lexeme: String::from("foo"),
+                literal: TokenLiteral::Null,
+            })]
         );
     }
 }
