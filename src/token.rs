@@ -157,7 +157,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenLiteral {
     Null,
     Number(f64),
@@ -175,7 +175,7 @@ impl fmt::Display for TokenLiteral {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,

@@ -26,6 +26,7 @@ impl fmt::Display for Literal {
 pub enum Expression {
     Group(Box<Self>),
     Literal(Literal),
+    Unary { operator: Token, right: Box<Self> },
 }
 
 impl fmt::Display for Expression {
@@ -33,6 +34,7 @@ impl fmt::Display for Expression {
         let name: String = match self {
             Self::Group(p) => format!("(group {})", p),
             Self::Literal(s) => s.to_string(),
+            Self::Unary { operator, right } => format!("({} {})", operator.lexeme, right),
         };
         write!(f, "{}", name)
     }
@@ -56,13 +58,18 @@ impl Parser {
 
     // Skip the current token, unless
     // we already reached the end.
-    fn consume(&mut self) {
+    // Return the previous token.
+    fn consume(&mut self) -> Option<&Token> {
+        let previous = self.index;
+
         if self
             .current_token()
             .is_some_and(|t| t.ttype != TokenType::Eof)
         {
             self.index += 1;
         }
+
+        self.tokens.get(previous)
     }
 
     // Check if the type of the current token
@@ -77,8 +84,37 @@ impl Parser {
             .filter(|t| t.ttype != TokenType::Eof && t.ttype == *token_type)
     }
 
+    // Check if the type of the current token matches
+    // one of the provided token types. If there is a
+    // match, it consumes the token and returns it.
+    fn match_current(&mut self, token_types: &[TokenType]) -> Option<&Token> {
+        if token_types
+            .iter()
+            .any(|ttype| self.check_current(ttype).is_some())
+        {
+            self.consume()
+        } else {
+            None
+        }
+    }
+
     // The main entry point of the parser.
     pub fn expression(&mut self) -> Option<Expression> {
+        self.unary()
+    }
+
+    // Parse the next two tokens and try to
+    // identify a unary operation.
+    //
+    // unary -> ( "!" | "-" ) unary | primary
+    fn unary(&mut self) -> Option<Expression> {
+        if let Some(t) = self.match_current(&[TokenType::Bang, TokenType::Minus]) {
+            return Some(Expression::Unary {
+                operator: t.clone(),
+                right: Box::new(self.unary()?),
+            });
+        }
+
         self.primary()
     }
 
@@ -185,8 +221,9 @@ mod tests {
             dummy_token(TokenType::Eof),
         ];
         let mut parser = Parser { tokens, index: 0 };
-        parser.consume();
+        let previous = parser.consume();
 
+        assert_eq!(previous, Some(&dummy_token(TokenType::Identifier)));
         assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Plus)));
     }
 
@@ -198,8 +235,9 @@ mod tests {
         let tokens = vec![dummy_token(TokenType::Eof)];
         let mut parser = Parser { tokens, index: 0 };
         parser.consume();
-        parser.consume();
+        let previous = parser.consume();
 
+        assert_eq!(previous, Some(&dummy_token(TokenType::Eof)));
         assert_eq!(parser.current_token(), Some(&dummy_token(TokenType::Eof)));
     }
 
@@ -211,8 +249,9 @@ mod tests {
             tokens: vec![],
             index: 0,
         };
-        parser.consume();
+        let previous = parser.consume();
 
+        assert_eq!(previous, None);
         assert_eq!(parser.current_token(), None);
     }
 
@@ -245,6 +284,38 @@ mod tests {
         // If we reached the end of the token sequence
         // we return `None` without checking the type.
         assert_eq!(parser.check_current(&TokenType::Eof), None);
+        assert_eq!(parser.index, 0);
+    }
+
+    #[test]
+    // Check that the method `match_current` works
+    // when the type of the current token is
+    // included in the matching list.
+    fn test_match_current_true() {
+        let tokens = vec![
+            dummy_token(TokenType::Number),
+            dummy_token(TokenType::Identifier),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let matched = parser.match_current(&[TokenType::Number, TokenType::Plus]);
+
+        assert_eq!(matched, Some(dummy_token(TokenType::Number)).as_ref());
+        assert_eq!(parser.index, 1);
+    }
+
+    #[test]
+    // Check that the method `match_current` works
+    // when the type of the current token is not
+    // included in the matching list.
+    fn test_match_current_false() {
+        let tokens = vec![
+            dummy_token(TokenType::Identifier),
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let matched = parser.match_current(&[TokenType::Number]);
+
+        assert_eq!(matched, None);
         assert_eq!(parser.index, 0);
     }
 
@@ -400,5 +471,119 @@ mod tests {
             ))))
         );
         assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `unary` works
+    // correctly with a token `Minus` in front
+    // of a number.
+    fn test_unary_minus() {
+        let tokens = vec![
+            dummy_token(TokenType::Minus),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.unary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Unary {
+                operator: dummy_token(TokenType::Minus),
+                right: Box::new(Expression::Literal(Literal::Number(123.4)))
+            })
+        );
+        assert_eq!(parser.index, 2);
+    }
+
+    #[test]
+    // Test that the method `unary` works
+    // correctly with a token `Bang` in front
+    // of a number.
+    fn test_unary_bang() {
+        let tokens = vec![
+            dummy_token(TokenType::Bang),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.unary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Unary {
+                operator: dummy_token(TokenType::Bang),
+                right: Box::new(Expression::Literal(Literal::Number(123.4)))
+            })
+        );
+        assert_eq!(parser.index, 2);
+    }
+
+    #[test]
+    // Test that the method `unary` works
+    // correctly with a double token `Bang` in front
+    // of a number.
+    fn test_unary_double_bang() {
+        let tokens = vec![
+            dummy_token(TokenType::Bang),
+            dummy_token(TokenType::Bang),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.unary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Unary {
+                operator: dummy_token(TokenType::Bang),
+                right: Box::new(Expression::Unary {
+                    operator: dummy_token(TokenType::Bang),
+                    right: Box::new(Expression::Literal(Literal::Number(123.4)))
+                }),
+            })
+        );
+        assert_eq!(parser.index, 3);
+    }
+
+    #[test]
+    // Test that the method `primary` works
+    // correctly when the list of tokens contains
+    // a group that wraps a unary expression.
+    fn test_primary_group_can_contain_unary() {
+        let tokens = vec![
+            dummy_token(TokenType::LParen),
+            dummy_token(TokenType::Bang),
+            Token {
+                ttype: TokenType::Number,
+                lexeme: String::new(),
+                literal: TokenLiteral::Number(123.4),
+            },
+            dummy_token(TokenType::RParen),
+            dummy_token(TokenType::Eof),
+        ];
+        let mut parser = Parser { tokens, index: 0 };
+        let result = parser.primary();
+
+        assert_eq!(
+            result,
+            Some(Expression::Group(Box::new(Expression::Unary {
+                operator: dummy_token(TokenType::Bang),
+                right: Box::new(Expression::Literal(Literal::Number(123.4)))
+            })))
+        );
+        assert_eq!(parser.index, 4);
     }
 }
