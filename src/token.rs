@@ -18,6 +18,7 @@ pub enum TokenType {
     LessEqual,
     Minus,
     Newline,
+    Number,
     Plus,
     RBrace,
     RParen,
@@ -46,6 +47,7 @@ impl fmt::Display for TokenType {
             Self::LessEqual => "LESS_EQUAL",
             Self::Minus => "MINUS",
             Self::Newline => "NEWLINE",
+            Self::Number => "NUMBER",
             Self::Plus => "PLUS",
             Self::RBrace => "RIGHT_BRACE",
             Self::RParen => "RIGHT_PAREN",
@@ -59,9 +61,10 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum TokenLiteral {
     Null,
+    Number(f64),
     String(String),
 }
 
@@ -69,12 +72,14 @@ impl fmt::Display for TokenLiteral {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Null => write!(f, "null"),
+            Self::Number(n) if n.fract() == 0.0 => write!(f, "{n:.1}"),
+            Self::Number(n) => write!(f, "{n}"),
             Self::String(s) => write!(f, "{s}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
@@ -132,4 +137,29 @@ pub const MULTI_CHARACTER_LEXEMES: &[(&str, TokenType)] = &[
 
 pub fn build_lexemes_map(list: &[(&str, TokenType)]) -> HashMap<String, TokenType> {
     HashMap::from_iter(list.iter().map(|n| (n.0.to_owned(), n.1.clone())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test that TokenLiteral::Number is
+    // displayed correctly when it contains
+    // an integer (the decimal part is zero).
+    fn test_token_literal_number_integer() {
+        let literal = TokenLiteral::Number(42.0);
+
+        assert_eq!(literal.to_string(), "42.0");
+    }
+
+    #[test]
+    // Test that TokenLiteral::Number is
+    // displayed correctly when it contains
+    // a float (the decimal part is not zero).
+    fn test_token_literal_number_float() {
+        let literal = TokenLiteral::Number(42.42);
+
+        assert_eq!(literal.to_string(), "42.42");
+    }
 }

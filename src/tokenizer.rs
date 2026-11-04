@@ -162,6 +162,88 @@ impl<'a> Tokenizer<'a> {
             }
         }
     }
+
+    // Test the current characters and
+    // try to match the beginning of a number,
+    // with or without decimals.
+    fn number(&mut self) -> Option<TokenResult> {
+        // If the current character is None return None.
+        let c = self.current_character?;
+
+        // If the current character is not a digit return None.
+        if !c.is_ascii_digit() {
+            return None;
+        }
+
+        // Prepare the string with the initial digit.
+        let mut s = c.to_string();
+
+        loop {
+            // We already know the current character
+            // is part of the number, so let's start
+            // from the next one.
+            self.advance();
+
+            match self.current_character {
+                Some(v) => {
+                    // The current character is a digit.
+                    // We can store it and move on to
+                    // the next character.
+                    if v.is_ascii_digit() {
+                        s.push(v);
+                        continue;
+                    }
+
+                    // The current character is a dot.
+                    // We should consider it only if the
+                    // resulting string doesn't already
+                    // contain a dot. Then we should check
+                    // if it's followed by other numbers.
+                    // If not, we stop here.
+                    if v == '.' && !s.contains('.') {
+                        match self.iter.peek() {
+                            Some(p) if p.is_ascii_digit() => {
+                                // The dot is part of the number
+                                s.push(v);
+                                continue;
+                            }
+                            _ => {
+                                // The character after the dot is
+                                // not a digit or there is nothing
+                                // else to read. We can stop here.
+                                break;
+                            }
+                        }
+                    }
+
+                    // The current character is neither a
+                    // digit nor a dot followed by a digit,
+                    // so we can stop here.
+                    break;
+                }
+                None => {
+                    // There is nothing left to read.
+                    // We can stop here.
+                    break;
+                }
+            }
+        }
+
+        // This removes multiple zeros after the dot.
+        let literal = TokenLiteral::Number(
+            s.parse::<f64>()
+                .expect("tokenizer produced an invalid number lexeme"),
+        );
+
+        // We don't need to advance as the current
+        // character is already something that doesn't
+        // belong to the number.
+        Some(Ok(Token {
+            ttype: TokenType::Number,
+            lexeme: s.clone(),
+            literal,
+        }))
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -170,6 +252,11 @@ impl<'a> Iterator for Tokenizer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         // If the current character is None return None.
         let current = self.current_character?;
+
+        // Try to match a number.
+        if let Some(t) = self.number() {
+            return Some(t);
+        }
 
         // Try to match a string.
         if let Some(t) = self.string() {
@@ -478,6 +565,193 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is not
+    // initialised and there is no current
+    // character.
+    fn test_number_no_current_character() {
+        let mut t = Tokenizer {
+            iter: "123".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        assert_eq!(t.number(), None);
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character, but the character is
+    // not a digit.
+    fn test_number_no_digit() {
+        let mut t = Tokenizer {
+            iter: "characters".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(t.number(), None);
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised and there is a current
+    // character, and the character is
+    // a single digit.
+    fn test_number_single_digit() {
+        let mut t = Tokenizer {
+            iter: "4".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.number(),
+            Some(Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("4"),
+                literal: TokenLiteral::Number(4.0),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // digits without a dot.
+    fn test_number_multiple_digits_without_dot() {
+        let mut t = Tokenizer {
+            iter: "4242".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.number(),
+            Some(Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("4242"),
+                literal: TokenLiteral::Number(4242.0),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // digits with a dot followed
+    // by non-digits.
+    fn test_number_multiple_digits_with_dot_without_decimals() {
+        let mut t = Tokenizer {
+            iter: "4242.characters".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.number(),
+            Some(Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("4242"),
+                literal: TokenLiteral::Number(4242.0),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // digits with a dot followed
+    // by other digits.
+    fn test_number_multiple_digits_with_dot_and_decimals() {
+        let mut t = Tokenizer {
+            iter: "4242.42".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.number(),
+            Some(Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("4242.42"),
+                literal: TokenLiteral::Number(4242.42),
+            }))
+        );
+    }
+
+    #[test]
+    // Test that the method number
+    // behaves correctly when the tokeniser is
+    // initialised, there is a current
+    // character, and the code contains
+    // digits with multiple dots.
+    fn test_number_multiple_dots() {
+        let mut t = Tokenizer {
+            iter: "1.2.3".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // This advances the iterator to the initial character
+        t.advance();
+
+        assert_eq!(
+            t.number(),
+            Some(Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("1.2"),
+                literal: TokenLiteral::Number(1.2),
+            }))
+        );
+    }
 }
 
 #[cfg(test)]
@@ -699,6 +973,79 @@ mod iterator_tests {
                 lexeme: String::from("\"a string\""),
                 literal: TokenLiteral::String(String::from("a string")),
             })]
+        );
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a number with decimals.
+    fn test_number() {
+        let mut t = Tokenizer {
+            iter: "4242.42".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // Initialise the iterator
+        t.advance();
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [Ok(Token {
+                ttype: TokenType::Number,
+                lexeme: String::from("4242.42"),
+                literal: TokenLiteral::Number(4242.42),
+            })]
+        );
+    }
+
+    #[test]
+    // Test the iterator end-to-end on
+    // a number with multiple dots.
+    fn test_number_multiple_dots() {
+        let mut t = Tokenizer {
+            iter: "1.2.3".chars().peekable(),
+            current_character: None,
+            current_line: 1,
+            errors: false,
+            sc_lexemes: HashMap::new(),
+            mc_lexemes: HashMap::new(),
+        };
+
+        // Initialise the iterator
+        t.advance();
+
+        let mut result = Vec::<TokenResult>::new();
+        for token in &mut t {
+            result.push(token);
+        }
+
+        assert_eq!(
+            result,
+            [
+                Ok(Token {
+                    ttype: TokenType::Number,
+                    lexeme: String::from("1.2"),
+                    literal: TokenLiteral::Number(1.2),
+                }),
+                Err(TokenError {
+                    message: "Unexpected character: .".to_string(),
+                    line: 1
+                }),
+                Ok(Token {
+                    ttype: TokenType::Number,
+                    lexeme: String::from("3"),
+                    literal: TokenLiteral::Number(3.0),
+                }),
+            ]
         );
     }
 }
