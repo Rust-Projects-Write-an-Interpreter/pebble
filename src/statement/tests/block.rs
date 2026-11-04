@@ -225,3 +225,136 @@ fn test_define_variable_is_local() {
     assert!(output.is_empty());
     assert!(matches!(env.get(&var_name), Err(EnvironmentError { .. })));
 }
+
+#[test]
+// Test that the function `execute` works
+// correctly when the statement is a
+// block statement that contains correct
+// statements and that defining a variable
+// in the local environment shadows
+// a variable with the same name in
+// the parent environment.
+fn test_define_variable_shadows_parent() {
+    // The parent environment.
+    let mut env = Environment::new();
+
+    // The name of the variable
+    // we are going to use.
+    let var_name = String::from("somevar");
+
+    // Define the variable in the
+    // parent environment.
+    env.define(var_name.clone(), Value::Boolean(true));
+
+    // The value we are going to use.
+    let var_value = 42.0;
+
+    // A token for the printed variable name.
+    let identifier_token = Token {
+        ttype: TokenType::Identifier,
+        lexeme: var_name.clone(),
+        literal: TokenLiteral::Null,
+        line: 1,
+    };
+
+    // The statement we are going to process
+    // contains a block.
+    let statement = Statement::Block(vec![
+        Statement::Var(
+            var_name.clone(),
+            Expression::Literal(Literal::Number(var_value)),
+        ),
+        Statement::Print(Expression::Variable(identifier_token)),
+    ]);
+
+    // Execute the statement.
+    let (result, output) = run_execute(&statement, &mut env);
+
+    assert_eq!(result, Ok(()));
+    assert_eq!(output, vec![Value::Number(var_value)]);
+    assert_eq!(env.get(&var_name).unwrap(), Value::Boolean(true));
+}
+
+#[test]
+// Test that the function `execute` works
+// correctly when the statement is a
+// block statement that contains correct
+// statements and that a variable defined
+// in the parent environment can be read
+// from the local one.
+fn test_read_variable_from_parent() {
+    // The parent environment.
+    let mut env = Environment::new();
+
+    // The name of the variable
+    // we are going to use.
+    let var_name = String::from("somevar");
+
+    // Define the variable in the
+    // parent environment.
+    env.define(var_name.clone(), Value::Boolean(true));
+
+    // A token for the printed variable name.
+    let identifier_token = Token {
+        ttype: TokenType::Identifier,
+        lexeme: var_name,
+        literal: TokenLiteral::Null,
+        line: 1,
+    };
+
+    // The statement we are going to process
+    // contains a block.
+    let statement = Statement::Block(vec![Statement::Print(Expression::Variable(
+        identifier_token,
+    ))]);
+
+    // Execute the statement.
+    let (result, output) = run_execute(&statement, &mut env);
+
+    assert_eq!(result, Ok(()));
+    assert_eq!(output, vec![Value::Boolean(true)]);
+}
+
+#[test]
+// Test that the function `execute` works
+// correctly when the statement is a
+// block statement that contains correct
+// statements and that assigning a variable
+// in the local environment affects
+// the variable defined in the parent
+// environment if the local one doesn't
+// contain it.
+fn test_assign_variable_affects_parent() {
+    // The parent environment.
+    let mut env = Environment::new();
+
+    // The name of the variable
+    // we are going to use.
+    let var_name = String::from("somevar");
+
+    // Define the variable in the
+    // parent environment.
+    env.define(var_name.clone(), Value::Boolean(true));
+
+    // A token for the printed variable name.
+    let identifier_token = Token {
+        ttype: TokenType::Identifier,
+        lexeme: var_name.clone(),
+        literal: TokenLiteral::Null,
+        line: 1,
+    };
+
+    // The statement we are going to process
+    // contains a block.
+    let statement = Statement::Block(vec![Statement::Expression(Expression::Assignment {
+        identifier: identifier_token,
+        expression: Box::new(Expression::Literal(Literal::Boolean(false))),
+    })]);
+
+    // Execute the statement.
+    let (result, output) = run_execute(&statement, &mut env);
+
+    assert_eq!(result, Ok(()));
+    assert!(output.is_empty());
+    assert_eq!(env.get(&var_name).unwrap(), Value::Boolean(false));
+}

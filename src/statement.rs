@@ -22,6 +22,10 @@ pub fn execute(
         Statement::Block(v) => {
             let mut local_env = Environment::new();
 
+            // Link the local environment
+            // with the parent one.
+            local_env.add_parent(env);
+
             for statement in v.iter() {
                 execute(statement, &mut local_env, output)?;
             }
