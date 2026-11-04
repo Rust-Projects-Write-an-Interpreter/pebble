@@ -3,6 +3,7 @@ use super::*;
 use crate::test_utils::dummy_token;
 use crate::token::TokenLiteral;
 
+mod assignment;
 mod comparison;
 mod equality;
 mod factor;

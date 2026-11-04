@@ -51,6 +51,17 @@ pub type EvaluationResult<T> = Result<T, EvaluationError>;
 
 pub fn evaluate(expression: &Expression, env: &mut Environment) -> EvaluationResult<Value> {
     match expression {
+        Expression::Assignment {
+            identifier,
+            expression,
+        } => {
+            let value = evaluate(expression, env)?;
+
+            env.assign(&identifier.lexeme, value.clone())
+                .map_err(|e| EvaluationError::new(identifier.line, e.message))?;
+
+            Ok(value)
+        }
         Expression::Binary {
             left,
             operator,

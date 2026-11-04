@@ -259,7 +259,51 @@ impl Parser {
 
     // Parse the next tokens as an expression.
     pub fn expression(&mut self) -> ParserResult<Expression> {
-        self.equality()
+        self.assignment()
+    }
+
+    // Parse the next three tokens and try to
+    // identify an assignment.
+    //
+    // assignment -> IDENTIFIER "=" assignment | equality
+    fn assignment(&mut self) -> ParserResult<Expression> {
+        // Parse the left side of the assignment.
+        let left = self.equality()?;
+
+        // Match an equal `=`.
+        // If not present the expression
+        // is simply the left side that
+        // we already parsed.
+        let Some(t) = self.match_current(&[TokenType::Equal]) else {
+            return Ok(left);
+        };
+
+        // If we reach this point we found
+        // an equal `=` in the expression.
+        // The token is cloned for later use.
+        // We cannot use the token itself
+        // later as it comes from a mutable
+        // borrow of self (self.match_current)
+        // and we need another mutable borrow
+        // later (self.assignment).
+        let equal = t.clone();
+
+        // Parse the right side of the assignment.
+        // This can be another assignment.
+        let right = self.assignment()?;
+
+        // Check the left side of the assignment.
+        // If it's not a variable return an error.
+        match left {
+            Expression::Variable(identifier) => Ok(Expression::Assignment {
+                identifier,
+                expression: Box::new(right),
+            }),
+            _ => Err(ParserError {
+                message: String::from("Invalid assignment target"),
+                token: equal,
+            }),
+        }
     }
 
     // Parse the next three tokens and try to

@@ -24,6 +24,10 @@ impl fmt::Display for Literal {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    Assignment {
+        identifier: Token,
+        expression: Box<Self>,
+    },
     Binary {
         left: Box<Self>,
         operator: Token,
@@ -41,6 +45,12 @@ pub enum Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name: String = match self {
+            Self::Assignment {
+                identifier,
+                expression,
+            } => {
+                format!("({} = {})", identifier.lexeme, expression)
+            }
             Self::Binary {
                 left,
                 operator,

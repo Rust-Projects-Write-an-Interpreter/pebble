@@ -46,6 +46,19 @@ impl Environment {
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
     }
+
+    // Assign a new value to an existing
+    // variable. Return an error if the
+    // variable is not defined.
+    pub fn assign(&mut self, name: &str, value: Value) -> EnvironmentResult<()> {
+        let current = self.values.get_mut(name).ok_or_else(|| EnvironmentError {
+            message: format!("Undefined variable {}.", name),
+        })?;
+
+        *current = value;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -134,5 +147,49 @@ mod tests {
             environment.values.get("somevar"),
             Some(&Value::Boolean(true))
         );
+    }
+
+    #[test]
+    // Test that the method `assign` works
+    // correctly when used to assign a
+    // value to a variable that already exists.
+    fn test_assign_variable() {
+        let mut environment = Environment::new();
+
+        // Define the variable without using a
+        // method of Environment to avoid cyclic
+        // test definitions.
+        environment
+            .values
+            .insert(String::from("somevar"), Value::Boolean(true));
+
+        assert_eq!(environment.assign("somevar", Value::Number(42.0)), Ok(()));
+
+        // Check the new value without using
+        // a method of Environment to avoid
+        // cyclic test definitions.
+        assert_eq!(
+            environment.values.get("somevar"),
+            Some(&Value::Number(42.0))
+        );
+    }
+
+    #[test]
+    // Test that the method `assign` returns
+    // the correct error when used to assign a
+    // value to a variable that doesn't exist.
+    fn test_assign_error() {
+        let mut environment = Environment::new();
+
+        assert_eq!(
+            environment.assign("somevar", Value::Boolean(true)),
+            Err(EnvironmentError {
+                message: String::from("Undefined variable somevar."),
+            })
+        );
+
+        // Check that the failed assignment
+        // didn't define the variable.
+        assert_eq!(environment.values.get("somevar"), None);
     }
 }
