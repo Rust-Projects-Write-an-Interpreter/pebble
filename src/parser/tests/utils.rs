@@ -173,3 +173,39 @@ fn test_expect_end() {
     );
     assert_eq!(parser.index, 0);
 }
+
+#[test]
+// Test that the method `check_eof`
+// returns false when the current
+// token is not `Eof`.
+fn test_check_eof_false() {
+    let tokens = vec![dummy_token(TokenType::Plus), Token::eof()];
+    let parser = Parser::new(tokens);
+
+    assert!(!parser.check_eof());
+    assert_eq!(parser.index, 0);
+}
+
+#[test]
+// Test that the method `check_eof`
+// returns true when the current
+// token is `Eof`.
+fn test_check_eof_true() {
+    let tokens = vec![Token::eof()];
+    let parser = Parser::new(tokens);
+
+    assert!(parser.check_eof());
+    assert_eq!(parser.index, 0);
+}
+
+#[test]
+// Test that the method `check_eof`
+// returns true when the list of
+// tokens is empty, as `new` adds
+// an `Eof` token.
+fn test_check_eof_empty() {
+    let parser = Parser::new(Vec::new());
+
+    assert!(parser.check_eof());
+    assert_eq!(parser.index, 0);
+}

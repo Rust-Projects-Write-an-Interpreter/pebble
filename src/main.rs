@@ -136,20 +136,22 @@ fn main() {
             // extract a parser.
             let mut p = parse_source(&filename);
 
-            let statement = p.statement().unwrap_or_else(|e| {
+            let statements = p.parse().unwrap_or_else(|e| {
                 eprintln!("{}", e);
                 process::exit(65);
             });
 
-            match statement {
-                Statement::Print(e) => {
-                    let result = evaluate(&e);
+            for statement in statements {
+                match statement {
+                    Statement::Print(e) => {
+                        let result = evaluate(&e);
 
-                    match result {
-                        Ok(v) => println!("{}", v),
-                        Err(e) => {
-                            eprintln!("{}", e);
-                            process::exit(70);
+                        match result {
+                            Ok(v) => println!("{}", v),
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                process::exit(70);
+                            }
                         }
                     }
                 }

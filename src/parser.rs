@@ -76,6 +76,12 @@ impl Parser {
         current_token.ttype != TokenType::Eof && current_token.ttype == *token_type
     }
 
+    // Check if the current token is
+    // the End of File.
+    fn check_eof(&self) -> bool {
+        self.current_token().ttype == TokenType::Eof
+    }
+
     // Check if the type of the current token matches
     // one of the provided token types. If there is a
     // match, it consumes the token and returns it.
@@ -146,6 +152,21 @@ impl Parser {
     }
 
     // The main entry point of the parser.
+    pub fn parse(&mut self) -> ParserResult<Vec<Statement>> {
+        // Create a vector to host
+        // the parsed statements.
+        let mut statements = Vec::<Statement>::new();
+
+        // Parse and collect statements
+        // until we reach the end of the file.
+        while !self.check_eof() {
+            statements.push(self.statement()?);
+        }
+
+        Ok(statements)
+    }
+
+    // Parse the next tokens as a statement.
     pub fn statement(&mut self) -> ParserResult<Statement> {
         // Enforce the presence of the keyword
         // `print`. If not present, the statement
